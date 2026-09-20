@@ -1,0 +1,13 @@
+export const IncidentType = {
+  TRAFFIC: 'TRANSITO',
+  MECHANICAL_FAILURE: 'FALLA_MECANICA',
+  FLAT_TIRE: 'PINCHADURA',
+  REFUELING: 'CARGA_DE_COMBUSTIBLE',
+  ROAD_CLOSURE: 'CORTE_DE_CALLE',
+  ACCIDENT: 'ACCIDENTE',
+  WEATHER: 'PROBLEMA_CLIMATICO',
+  DRIVER_DELAY: 'DEMORA_DEL_CHOFER',
+  OTHER: 'OTRO',
+} as const
+
+export type IncidentType = (typeof IncidentType)[keyof typeof IncidentType]

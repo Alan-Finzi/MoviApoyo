@@ -1,0 +1,81 @@
+.sidebar {
+  width: var(--layout-sidebar-width);
+  flex-shrink: 0;
+  background-color: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-4);
+  gap: var(--space-6);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-brand-700);
+  padding: var(--space-2);
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.navLink:hover {
+  background-color: var(--color-surface-muted);
+  color: var(--color-text-primary);
+}
+
+.navLinkActive {
+  background-color: var(--color-brand-50);
+  color: var(--color-brand-700);
+}
+
+.backdrop {
+  display: none;
+  border: none;
+  padding: 0;
+}
+
+/* Por debajo de --breakpoint-md (768px): el sidebar pasa a ser un cajón
+   (drawer) que se abre desde el botón de menú del Topbar (rule 19). */
+@media (max-width: 767px) {
+  .sidebar {
+    position: fixed;
+    inset: 0 20% 0 0;
+    z-index: 40;
+    transform: translateX(-100%);
+    transition: transform var(--transition-base);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .sidebarOpen {
+    transform: translateX(0);
+  }
+
+  .backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background-color: rgba(15, 20, 32, 0.4);
+    z-index: 30;
+  }
+}

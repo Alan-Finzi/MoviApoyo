@@ -1,0 +1,41 @@
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  min-height: var(--layout-topbar-height);
+}
+
+.menuButton {
+  display: inline-flex;
+}
+
+@media (min-width: 768px) {
+  .menuButton {
+    display: none;
+  }
+}
+
+.brandMobile {
+  font-weight: var(--font-weight-bold);
+  color: var(--color-brand-700);
+}
+
+@media (min-width: 768px) {
+  .brandMobile {
+    display: none;
+  }
+}
+
+.spacer {
+  flex: 1;
+}
+
+.roleSwitcher {
+  min-width: 170px;
+}

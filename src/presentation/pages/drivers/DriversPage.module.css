@@ -1,0 +1,11 @@
+.title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-6);
+}
+
+.driverCell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}

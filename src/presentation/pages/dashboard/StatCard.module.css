@@ -1,0 +1,47 @@
+.card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+}
+
+.value {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+}
+
+.label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.success {
+  background-color: var(--color-success-bg);
+  color: var(--color-success-fg);
+}
+.warning {
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning-fg);
+}
+.danger {
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger-fg);
+}
+.info {
+  background-color: var(--color-info-bg);
+  color: var(--color-info-fg);
+}
+.neutral {
+  background-color: var(--color-neutral-bg);
+  color: var(--color-neutral-fg);
+}

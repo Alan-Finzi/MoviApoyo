@@ -1,0 +1,71 @@
+.container {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .container {
+    grid-template-columns: 1.4fr 1fr;
+    align-items: start;
+  }
+}
+
+.svg {
+  width: 100%;
+  height: auto;
+  background-color: var(--color-surface-muted);
+  border-radius: var(--radius-md);
+}
+
+.route {
+  stroke: var(--color-brand-300);
+  stroke-width: 3;
+  stroke-dasharray: 6 6;
+}
+
+.originPoint {
+  fill: var(--color-info-fg);
+}
+
+.destinationPoint {
+  fill: var(--color-accent-600);
+}
+
+.vehiclePoint {
+  fill: var(--color-brand-500);
+  stroke: var(--color-surface);
+  stroke-width: 2;
+}
+
+.pointLabel {
+  font-size: 9px;
+  fill: var(--color-text-secondary);
+  text-anchor: middle;
+}
+
+.infoPanel {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.infoPanel div {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+}
+
+.infoPanel dt {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-1);
+}
+
+.infoPanel dd {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
