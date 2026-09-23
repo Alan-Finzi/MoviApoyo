@@ -24,18 +24,22 @@ WhatsApp reales sin reescribir la aplicación.
 - [Cómo agregar una nueva funcionalidad](#cómo-agregar-una-nueva-funcionalidad)
 - [Cómo cambiar el proveedor de mapas](#cómo-cambiar-el-proveedor-de-mapas)
 - [Cómo cambiar el proveedor de notificaciones](#cómo-cambiar-el-proveedor-de-notificaciones)
-- [Cómo conectar el backend](#cómo-conectar-el-backend)
+- [Backend (Firebase)](#backend-firebase)
+- [Choferes y padres: todo por WhatsApp](#choferes-y-padres-todo-por-whatsapp)
 - [Alcance actual y próximos pasos](#alcance-actual-y-próximos-pasos)
 
 ## Qué es MoviApoyo
 
 El sistema modela el ciclo de vida de un traslado: un chofer sale a buscar a un
-niño, se acerca a su domicilio (lo que dispara un aviso al padre/tutor), lo
+paciente, se acerca a su domicilio (lo que dispara un aviso al padre/tutor), lo
 recoge, viaja hacia el destino y lo entrega. En el camino puede haber demoras o
 incidentes, que también generan avisos. Todo queda registrado en un historial
-auditable.
+auditable, incluyendo los horarios reales de salida/llegada de cada viaje, para
+poder analizar después si conviene ajustar un horario programado.
 
-Como todavía no existe un backend, la aplicación funciona **completamente con
+El backend es **Firebase** (Firestore + Cloud Functions — ver
+[`docs/firebase.md`](docs/firebase.md)). Mientras no configures tu propio
+proyecto de Firebase, la aplicación sigue funcionando **completamente con
 datos simulados**: un motor de simulación mueve los vehículos "en vivo" y
 dispara las notificaciones correspondientes, para poder ver el flujo completo
 sin depender de nada externo.
@@ -54,17 +58,19 @@ Presentation → Application → Domain ← Infrastructure
   traslado). No conoce React, ni HTTP, ni ninguna librería externa.
 - **Application**: casos de uso. Orquestan el Domain, nunca contienen HTML ni
   llamadas a fetch.
-- **Infrastructure**: implementaciones concretas (hoy, todas Mock) de esas
-  interfaces: repositorios en memoria, `MockNotificationService`,
-  `MockMapProvider`, `TripSimulationEngine`, etc.
+- **Infrastructure**: implementaciones concretas de esas interfaces —
+  repositorios en memoria (Mock) o sobre Firestore (`infrastructure/firebase/`,
+  elegido automáticamente según `.env`, ver [`docs/firebase.md`](docs/firebase.md)),
+  `MockNotificationService`, `MockMapProvider`, `TripSimulationEngine`, etc.
 - **Presentation**: componentes, páginas, layouts y hooks de React. Consumen
   Use Cases a través de hooks, nunca repositorios directamente.
 
 ## Tecnologías
 
 React 19 + TypeScript + Vite, React Router, CSS Modules con variables CSS
-(sistema de diseño propio), React Hook Form + Zod para formularios, ESLint +
-Prettier, Vitest + Testing Library.
+(sistema de diseño propio), React Hook Form + Zod para formularios, Firebase
+(Firestore + Cloud Functions) como backend, ESLint + Prettier, Vitest +
+Testing Library.
 
 Se evitó deliberadamente sumar dependencias que no aportaban valor real acá:
 sin Axios (alcanza `fetch` + un `ApiClient` propio), sin Redux/Zustand (los
@@ -88,14 +94,15 @@ algún valor. Los archivos `.env.development`, `.env.test` y `.env.production`
 ya están versionados con valores por defecto (sin secretos, como corresponde
 en una app Vite: las variables `VITE_*` viajan al bundle del cliente).
 
-| Variable                    | Descripción                                               |
-| --------------------------- | --------------------------------------------------------- |
-| `VITE_APP_NAME`             | Nombre mostrado en la aplicación.                         |
-| `VITE_API_BASE_URL`         | URL base del backend real (vacío mientras se usan Mocks). |
-| `VITE_MAP_PROVIDER`         | `mock` \| `leaflet` \| `google` \| `mapbox`               |
-| `VITE_MAP_API_KEY`          | API key del proveedor de mapas (cuando no es `mock`).     |
-| `VITE_WHATSAPP_PROVIDER`    | `mock` \| `whatsapp-business` \| `external`               |
-| `VITE_NOTIFICATION_ENABLED` | Habilita/deshabilita el envío de notificaciones.          |
+| Variable                    | Descripción                                                                                             |
+| --------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `VITE_APP_NAME`             | Nombre mostrado en la aplicación.                                                                       |
+| `VITE_API_BASE_URL`         | URL base del backend real (vacío mientras se usan Mocks).                                               |
+| `VITE_MAP_PROVIDER`         | `mock` \| `leaflet` \| `google` \| `mapbox`                                                             |
+| `VITE_MAP_API_KEY`          | API key del proveedor de mapas (cuando no es `mock`).                                                   |
+| `VITE_WHATSAPP_PROVIDER`    | `mock` \| `whatsapp-business` \| `external`                                                             |
+| `VITE_NOTIFICATION_ENABLED` | Habilita/deshabilita el envío de notificaciones.                                                        |
+| `VITE_FIREBASE_*`           | Config del proyecto de Firebase (ver [`docs/firebase.md`](docs/firebase.md)). Vacío = la app usa Mocks. |
 
 ## Ejecución
 
@@ -111,7 +118,7 @@ avanzar y generar notificaciones en vivo (aparecen como toasts y en
 
 Usá el selector **"Ver como"** del header para simular los distintos roles
 (Administrador, Coordinador, Chofer, Padre/Tutor) — no hay login real todavía
-(ver [Cómo conectar el backend](#cómo-conectar-el-backend)).
+(ver [Backend (Firebase)](#backend-firebase)).
 
 ## Build
 
@@ -132,7 +139,8 @@ npm run test:watch  # modo watch
 Hay tests de dominio (máquina de estados del traslado), de utilidades
 (formateo de fechas, cálculo de distancia con la fórmula de Haversine), de
 casos de uso (la regla de "no notificar dos veces" de proximidad, validación
-de configuración) y de componentes (`StatusBadge`).
+de configuración, la recomendación de horario a partir del historial de
+viajes) y de componentes (`StatusBadge`).
 
 Otros comandos útiles: `npm run lint`, `npm run lint:fix`, `npm run format`,
 `npm run format:check`.
@@ -144,9 +152,13 @@ src/
 ├── app/            # router, providers (composition root), config de entorno
 ├── domain/         # entidades, enums, value objects, interfaces, reglas de negocio
 ├── application/    # casos de uso y DTOs
-├── infrastructure/ # implementaciones Mock, motor de simulación, ApiClient
+├── infrastructure/ # Mock, Firestore (infrastructure/firebase/), motor de simulación, ApiClient
 ├── presentation/   # componentes, layouts, páginas, hooks, estilos
 └── shared/         # constantes, utils, tipos, errores — sin dependencias de framework
+
+functions/          # Cloud Functions (proyecto Node aparte, ver functions/README.md)
+firestore.rules     # Reglas de seguridad de Firestore
+firebase.json       # Config del CLI de Firebase (hosting, functions, firestore)
 ```
 
 ## Convenciones de código
@@ -167,8 +179,9 @@ src/
 1. Modelá las entidades/enums que necesites en `domain/` (si no existen ya).
 2. Definí la interfaz del repositorio o servicio en `domain/repositories` o
    `domain/services`, si hace falta una nueva fuente de datos.
-3. Implementá el Mock correspondiente en `infrastructure/` y agregalo al
-   listado de datos semilla si aplica (`infrastructure/repositories/fixtures/seedData.ts`).
+3. Implementá el Mock correspondiente en `infrastructure/repositories/` (y
+   agregalo a `infrastructure/repositories/fixtures/seedData.ts`) y, si
+   aplica, su equivalente en `infrastructure/firebase/repositories/`.
 4. Escribí el Use Case en `application/useCases/`.
 5. Conectalo en el composition root: `app/providers/dependencies.ts`.
 6. Creá un hook en `presentation/hooks/` que use ese Use Case con `useAsync`.
@@ -204,26 +217,56 @@ API (u otro proveedor):
 3. Ningún Use Case, hook ni componente cambia. Ver
    [`docs/notifications.md`](docs/notifications.md).
 
-## Cómo conectar el backend
+## Backend (Firebase)
 
-1. Definí `VITE_API_BASE_URL` en el `.env` correspondiente.
-2. Por cada `Mock*Repository`, creá su par `*RepositoryApi` implementando la
-   misma interfaz de `domain/repositories/`, usando `ApiClient`
-   (`infrastructure/api/ApiClient.ts`) para las llamadas HTTP.
-3. Reemplazá las instancias en `app/providers/dependencies.ts`.
-4. Para autenticación real, reemplazá `MockAuthRepository` por una
-   implementación que valide contra el backend; `ProtectedRoute` y
-   `RoleGuard` (`app/router/`) ya están preparados para leer esa sesión sin
-   cambios. Ver [`docs/api.md`](docs/api.md).
+Ver la guía completa en [`docs/firebase.md`](docs/firebase.md): cómo crear tu
+proyecto de Firebase, completar las variables `VITE_FIREBASE_*`, desplegar
+las reglas de Firestore y levantar las Cloud Functions. En resumen: cuando
+`VITE_FIREBASE_PROJECT_ID` está definido, el composition root
+(`app/providers/dependencies.ts`) arma automáticamente los repositorios
+sobre Firestore en vez de los Mock — no hay que tocar ningún Use Case, hook
+ni pantalla.
+
+Si en cambio preferís conectar un backend propio por HTTP (en vez de, o
+además de, Firestore), `infrastructure/api/ApiClient.ts` ya está preparado
+para eso: creá un `*RepositoryApi` por cada `Mock*Repository`, implementando
+la misma interfaz de `domain/repositories/`, y reemplazá la instancia en
+`app/providers/dependencies.ts`. Ver [`docs/api.md`](docs/api.md).
+
+La autenticación real de administrador/coordinador (`MockAuthRepository` →
+Firebase Auth u otro proveedor) queda como paso siguiente explícito: ver
+"Pendiente: autenticación real" en `docs/firebase.md`. `ProtectedRoute` y
+`RoleGuard` (`app/router/`) ya están preparados para leer esa sesión sin
+cambios el día que exista.
+
+## Choferes y padres: todo por WhatsApp
+
+Decisión de producto: **choferes y padres/tutores no tienen pantalla web
+propia**. Comparten ubicación, reportan incidentes y confirman
+recogida/entrega escribiendo al WhatsApp de la empresa; los padres reciben
+avisos y pueden consultar el estado del traslado de la misma forma. Nadie de
+estos dos roles descarga ni ingresa a ninguna app — solo administradores y
+coordinadores usan este dashboard.
+
+Ya existe un scaffold del webhook (`functions/`) que identifica al chofer
+por su teléfono y actualiza la ubicación del traslado cuando comparte su
+ubicación por WhatsApp — pero todavía no está desplegado ni conectado a una
+cuenta real de WhatsApp Business API. El diseño completo del flujo (qué
+falta, qué Use Case dispara cada mensaje) está en
+[`docs/whatsapp-bot.md`](docs/whatsapp-bot.md).
 
 ## Alcance actual y próximos pasos
 
 Implementado en este MVP: Dashboard, Traslados (listado y detalle), estados
-del traslado con máquina de transiciones, mapa esquemático en vivo, choferes,
-vehículos, pasajeros (con separación de datos sensibles), notificaciones
-(mock + centro de notificaciones), incidentes, configuración de aviso, y toda
-la arquitectura preparada para API/GPS/WhatsApp reales.
+del traslado con máquina de transiciones, mapa esquemático en vivo,
+choferes (con ficha individual y su historial de viajes), pacientes (con
+ficha individual: datos, viajes, notificaciones y horarios sugeridos;
+separación de datos sensibles), notificaciones (centro de notificaciones),
+incidentes, configuración de aviso, backend en Firebase (Firestore, elegido
+automáticamente por variables de entorno) y un scaffold inicial del webhook
+de WhatsApp en Cloud Functions.
 
 Deliberadamente fuera de este MVP (documentado, no implementado a medias):
-login real, panel de choferes y panel de familia (rutas reservadas, dominio
-preparado — ver `docs/architecture.md`), integración real de mapas/WhatsApp/GPS.
+login real de administrador/coordinador, integración real de
+mapas/GPS, envío y recepción reales de WhatsApp (el scaffold existe, la
+cuenta de WhatsApp Business API y el resto de los comandos no).

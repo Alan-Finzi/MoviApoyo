@@ -30,7 +30,7 @@ const STATUS_FILTER_OPTIONS = [
 const columns: readonly TableColumn<TripListItemDto>[] = [
   {
     key: 'child',
-    header: 'Niño',
+    header: 'Paciente',
     render: (trip) => <Link to={buildTripDetailRoute(trip.id)}>{trip.childFullName}</Link>,
   },
   {

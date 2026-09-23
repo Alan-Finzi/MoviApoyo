@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { Link } from 'react-router-dom'
 
 import type { Passenger } from '@/domain/entities/Passenger'
 import { getPassengerFullName } from '@/domain/entities/Passenger'
@@ -8,10 +9,10 @@ import { LoadingState } from '@/presentation/components/LoadingState'
 import { Table, type TableColumn } from '@/presentation/components/Table'
 import { useGuardians } from '@/presentation/hooks/useGuardians'
 import { usePassengers } from '@/presentation/hooks/usePassengers'
+import { buildPassengerDetailRoute } from '@/shared/constants/routes.constants'
 import { formatPhone } from '@/shared/utils/formatPhone'
 
 import styles from './PassengersPage.module.css'
-import { SensitiveInfoCell } from './SensitiveInfoCell'
 
 export function PassengersPage() {
   const passengers = usePassengers()
@@ -29,7 +30,13 @@ export function PassengersPage() {
   }, [guardians.state])
 
   const columns: readonly TableColumn<Passenger>[] = [
-    { key: 'name', header: 'Nombre', render: (passenger) => getPassengerFullName(passenger) },
+    {
+      key: 'name',
+      header: 'Nombre',
+      render: (passenger) => (
+        <Link to={buildPassengerDetailRoute(passenger.id)}>{getPassengerFullName(passenger)}</Link>
+      ),
+    },
     { key: 'home', header: 'Domicilio', render: (passenger) => passenger.homeAddress.street },
     {
       key: 'destination',
@@ -46,26 +53,21 @@ export function PassengersPage() {
       header: 'Teléfono de contacto',
       render: (passenger) => guardianById.get(passenger.guardianId)?.phone ?? '—',
     },
-    {
-      key: 'sensitive',
-      header: 'Información sensible',
-      render: (passenger) => <SensitiveInfoCell passengerId={passenger.id} />,
-    },
   ]
 
   return (
     <div>
-      <h1 className={styles.title}>Pasajeros</h1>
+      <h1 className={styles.title}>Pacientes</h1>
       <p className={styles.subtitle}>
-        La información médica y los documentos no se muestran por defecto: hay que pedirlos
-        explícitamente por fila.
+        Abrí un paciente para ver su información completa, sus notificaciones y su historial de
+        viajes.
       </p>
-      {passengers.state.status === 'loading' && <LoadingState message="Cargando pasajeros…" />}
+      {passengers.state.status === 'loading' && <LoadingState message="Cargando pacientes…" />}
       {passengers.state.status === 'error' && (
         <ErrorState message={passengers.state.message} onRetry={passengers.reload} />
       )}
       {passengers.state.status === 'empty' && (
-        <EmptyState title="Todavía no hay pasajeros cargados" />
+        <EmptyState title="Todavía no hay pacientes cargados" />
       )}
       {passengers.state.status === 'success' && (
         <Table

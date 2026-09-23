@@ -2,7 +2,15 @@ import type { Trip } from '@/domain/entities/Trip'
 import type { TripEvent } from '@/domain/entities/TripEvent'
 
 export type TripMutableFields = Partial<
-  Pick<Trip, 'status' | 'delayMinutes' | 'estimatedArrival' | 'currentLocation'>
+  Pick<
+    Trip,
+    | 'status'
+    | 'delayMinutes'
+    | 'estimatedArrival'
+    | 'currentLocation'
+    | 'actualDepartureAt'
+    | 'actualArrivalAt'
+  >
 >
 
 // La UI y los casos de uso nunca saben si esto lee de una API real o de

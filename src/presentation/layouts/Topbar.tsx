@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ChangeEvent } from 'react'
-import { Menu, Moon, Sun } from 'lucide-react'
+import { LogOut, Menu, Moon, Sun } from 'lucide-react'
 
 import { useAuth } from '@/app/providers/AuthProvider'
 import { UserRole } from '@/domain/enums/UserRole'
@@ -32,12 +32,14 @@ interface TopbarProps {
   readonly onToggleSidebar: () => void
 }
 
-// El selector de rol es una herramienta de demo (rule 29): no hay login
-// real, así que esta es la forma de probar las rutas con RoleGuard sin
-// backend de autenticación. El toggle de tema demuestra que Dark Mode
-// (rule 36) funciona con solo redefinir variables CSS.
+// El selector de rol es una herramienta de demo: solo aparece cuando
+// authRepository es el Mock (sin Firebase configurado, ver AuthProvider),
+// para poder probar las rutas con RoleGuard sin backend de autenticación.
+// Con Firebase real (setDemoRole === null) se muestra el usuario autenticado
+// y un botón para cerrar sesión. El toggle de tema demuestra que Dark Mode
+// funciona con solo redefinir variables CSS.
 export function Topbar({ onToggleSidebar }: TopbarProps) {
-  const { user, setRole } = useAuth()
+  const { user, setDemoRole, signOut } = useAuth()
   const [theme, setTheme] = useState<Theme | null>(() => readStoredTheme())
 
   useEffect(() => {
@@ -59,7 +61,7 @@ export function Topbar({ onToggleSidebar }: TopbarProps) {
   }
 
   function handleRoleChange(event: ChangeEvent<HTMLSelectElement>): void {
-    setRole(event.target.value as UserRole)
+    setDemoRole?.(event.target.value as UserRole)
   }
 
   return (
@@ -72,15 +74,24 @@ export function Topbar({ onToggleSidebar }: TopbarProps) {
 
       <div className={styles.spacer} />
 
-      <div className={styles.roleSwitcher}>
-        <Select
-          label="Ver como"
-          name="role"
-          value={user.role}
-          onChange={handleRoleChange}
-          options={ROLE_OPTIONS}
-        />
-      </div>
+      {setDemoRole ? (
+        <div className={styles.roleSwitcher}>
+          <Select
+            label="Ver como"
+            name="role"
+            value={user.role}
+            onChange={handleRoleChange}
+            options={ROLE_OPTIONS}
+          />
+        </div>
+      ) : (
+        <div className={styles.userInfo}>
+          <span className={styles.userName}>{user.fullName}</span>
+          <IconButton label="Cerrar sesión" onClick={signOut}>
+            <LogOut size={18} aria-hidden="true" />
+          </IconButton>
+        </div>
+      )}
 
       <IconButton
         label={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}

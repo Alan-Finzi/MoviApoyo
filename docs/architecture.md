@@ -44,14 +44,18 @@ dependencias solo apuntan hacia adentro**.
   (`application/dto/`) son las formas de datos ya pensadas para una pantalla
   específica (ej. `TripListItemDto` trae el nombre del chofer ya resuelto).
 
-- **Infrastructure** contiene las implementaciones concretas: los
-  `Mock*Repository` (en memoria, mediante un store observable simple —
-  `infrastructure/store/createStore.ts` — sin Redux ni Zustand),
-  `MockNotificationService`, `MockMapProvider`, `HaversineDistanceService`
+- **Infrastructure** contiene las implementaciones concretas. Hay dos
+  familias por repositorio: `Mock*Repository` (en memoria, mediante un
+  store observable simple — `infrastructure/store/createStore.ts` — sin
+  Redux ni Zustand) y `Firestore*Repository` (`infrastructure/firebase/repositories/`,
+  ver [`docs/firebase.md`](firebase.md)) — el composition root elige una u
+  otra según haya o no un proyecto de Firebase configurado. También viven
+  acá `MockNotificationService`, `MockMapProvider`, `HaversineDistanceService`
   (esta sí es una implementación real, no mock: la fórmula de distancia
   entre coordenadas es la misma independientemente del origen del dato),
   `MockLocationService`, `TripSimulationEngine` (el motor que mueve los
-  traslados "en vivo") y `ApiClient` (preparado para cuando exista backend).
+  traslados "en vivo") y `ApiClient` (preparado para un backend HTTP propio,
+  alternativo a Firestore).
 
 - **Presentation** son los componentes de React. Las páginas
   (`presentation/pages/`) usan hooks (`presentation/hooks/`) que llaman a
@@ -107,16 +111,25 @@ aunque hoy `MockAuthRepository` siempre resuelve una sesión (no hay login
 real todavía — rule 29). El selector "Ver como" del header cambia el rol
 simulado y las rutas con `RoleGuard` reaccionan de inmediato.
 
-## Experiencias futuras (dominio preparado, UI no implementada)
+## Decisión de producto: choferes y padres van por WhatsApp, no por la web
 
-- **Panel de choferes** (`/choferes` es el listado administrativo actual;
-  una futura app/panel para que el chofer inicie viaje, confirme recogida,
-  informe demoras — rule 59 — puede construirse reutilizando los mismos Use
-  Cases: `StartTripUseCase`, `UpdateTripStatusUseCase`, `RegisterIncidentUseCase`).
-- **Panel de familia** (`/familia`, ruta reservada en
-  `shared/constants/routes.constants.ts` — rule 58): mostraría el próximo
-  traslado del hijo, ETA y notificaciones, reutilizando
-  `GetTripByIdUseCase` y `GetTripMapDataUseCase`.
+> **Actualizado**: se decidió que choferes y padres/tutores no van a tener
+> una pantalla web propia — toda su interacción es por WhatsApp, sin
+> descargar ni ingresar a ninguna app. Solo administradores y coordinadores
+> usan el dashboard. El diseño completo de ese flujo está en
+> [`docs/whatsapp-bot.md`](whatsapp-bot.md).
 
-No se implementaron para no meter complejidad innecesaria en el MVP (rule
-60), pero el dominio ya los soporta.
+Esto reemplaza la idea original de un futuro "panel de chofer" (rule 59) y
+"panel de familia" (rule 58, ruta `/familia` reservada en
+`shared/constants/routes.constants.ts`): esas pantallas no se van a construir.
+Los Use Cases que se pensaron para alimentarlas (`StartTripUseCase`,
+`UpdateTripStatusUseCase`, `RegisterIncidentUseCase`, `GetTripByIdUseCase`,
+`GetTripMapDataUseCase`) siguen siendo exactamente los que va a llamar el
+webhook de WhatsApp el día que se implemente — el trabajo de Application y
+Domain no se pierde, solo cambia quién los invoca.
+
+Las rutas `RoleGuard` para `DRIVER`/`PARENT` (`app/router/AppRouter.tsx`) y
+la ruta `/familia` quedan como código sin uso real por ahora: no se
+eliminaron todavía porque es una decisión de código pendiente de confirmar,
+no solo de documentación (ver el punto 5 de "Qué falta para implementarlo"
+en `docs/whatsapp-bot.md`).

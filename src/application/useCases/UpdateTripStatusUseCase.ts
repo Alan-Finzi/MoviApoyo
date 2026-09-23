@@ -1,6 +1,7 @@
 import { NotificationChannel } from '@/domain/enums/NotificationChannel'
-import type { TripStatus } from '@/domain/enums/TripStatus'
+import { TripStatus } from '@/domain/enums/TripStatus'
 import type { Trip } from '@/domain/entities/Trip'
+import type { TripMutableFields } from '@/domain/repositories/TripRepository'
 import type { PassengerRepository } from '@/domain/repositories/PassengerRepository'
 import type { TripRepository } from '@/domain/repositories/TripRepository'
 import {
@@ -33,7 +34,16 @@ export class UpdateTripStatusUseCase {
       )
     }
 
-    const updatedTrip = await this.tripRepository.updateTrip(tripId, { status: nextStatus })
+    // Se registra la hora real de salida/llegada (no la programada/estimada)
+    // para poder comparar después y sugerir ajustes de horario (ver
+    // GetScheduleRecommendationUseCase).
+    const changes: TripMutableFields = {
+      status: nextStatus,
+      ...(nextStatus === TripStatus.ON_THE_WAY && { actualDepartureAt: new Date().toISOString() }),
+      ...(nextStatus === TripStatus.COMPLETED && { actualArrivalAt: new Date().toISOString() }),
+    }
+
+    const updatedTrip = await this.tripRepository.updateTrip(tripId, changes)
 
     const passenger = await this.passengerRepository.getPassengerById(updatedTrip.passengerId)
 

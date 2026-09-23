@@ -8,4 +8,10 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  color: inherit;
+  text-decoration: none;
+}
+
+.driverCell:hover {
+  text-decoration: underline;
 }

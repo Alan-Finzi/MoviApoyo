@@ -1,17 +1,25 @@
 # API y backend
 
+> El backend elegido es **Firebase** (Firestore + Cloud Functions). Este
+> documento describe la alternativa de conectar un backend HTTP propio en
+> vez de (o adicionalmente a) Firestore. Para la guía de Firebase, ver
+> [`docs/firebase.md`](firebase.md).
+
 ## Estado actual
 
-Todos los repositorios (`domain/repositories/*`) tienen hoy una única
-implementación: `Mock*Repository`, que lee y escribe sobre un store en
-memoria (`infrastructure/repositories/stores.ts`), sembrado con datos de
-ejemplo (`infrastructure/repositories/fixtures/seedData.ts`). No hay ninguna
-llamada de red en la aplicación todavía.
+Cada repositorio (`domain/repositories/*`) tiene hoy dos implementaciones
+posibles: `Mock*Repository` (en memoria, sembrado con
+`infrastructure/repositories/fixtures/seedData.ts`) y
+`Firestore*Repository` (`infrastructure/firebase/repositories/`). El
+composition root (`app/providers/dependencies.ts`) elige una u otra según
+si `VITE_FIREBASE_PROJECT_ID` está definido — no hay, todavía, ninguna
+implementación que hable HTTP con un backend propio.
 
 ## ApiClient
 
-`infrastructure/api/ApiClient.ts` ya existe, preparado para el día que haya
-backend, aunque hoy no lo usa ningún repositorio. Centraliza:
+`infrastructure/api/ApiClient.ts` ya existe, preparado para el día que haga
+falta un backend HTTP propio (además de o en vez de Firestore), aunque hoy
+no lo usa ningún repositorio. Centraliza:
 
 - `baseURL` (desde `VITE_API_BASE_URL`, vía `app/config/env.ts`).
 - Headers, incluido un `Authorization: Bearer <token>` opcional

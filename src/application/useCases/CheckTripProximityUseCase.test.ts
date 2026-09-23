@@ -29,6 +29,8 @@ function buildTrip(overrides: Partial<Trip> = {}): Trip {
     currentLocation: null,
     events: [],
     notifiedMilestones: [],
+    actualDepartureAt: null,
+    actualArrivalAt: null,
     ...overrides,
   }
 }

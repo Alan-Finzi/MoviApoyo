@@ -39,6 +39,7 @@ export class GetTripsUseCase {
         }
         return {
           id: trip.id,
+          passengerId: passenger.id,
           childFullName: getPassengerFullName(passenger),
           scheduledDeparture: trip.scheduledDeparture,
           estimatedArrival: trip.estimatedArrival,

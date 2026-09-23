@@ -1,5 +1,10 @@
 # Notificaciones
 
+> Este documento cubre las notificaciones **salientes** (la empresa avisa al
+> padre/tutor). Para el diseño de los mensajes **entrantes** (el chofer
+> escribiéndole al bot para compartir ubicación, confirmar recogida o
+> reportar un incidente), ver [`docs/whatsapp-bot.md`](whatsapp-bot.md).
+
 ## Abstracción
 
 `domain/services/NotificationService.ts` define el contrato:

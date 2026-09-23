@@ -48,7 +48,7 @@ const NAV_ITEMS: readonly NavItem[] = [
   },
   {
     to: ROUTES.PASSENGERS,
-    label: 'Pasajeros',
+    label: 'Pacientes',
     icon: <Users size={18} aria-hidden="true" />,
     roles: OPERATIONS_ROLES,
   },

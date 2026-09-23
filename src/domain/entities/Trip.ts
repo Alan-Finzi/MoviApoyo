@@ -22,4 +22,10 @@ export interface Trip {
   // Hitos de notificación ya enviados (ej. "NEAR_PICKUP"). Se usa para no
   // notificar dos veces el mismo evento (rule 48).
   readonly notifiedMilestones: readonly string[]
+  // Horarios reales (vs. programados/estimados), para poder analizar
+  // después si conviene ajustar el horario de salida. null hasta que
+  // ocurren (se completan solos al cambiar de estado, ver
+  // UpdateTripStatusUseCase).
+  readonly actualDepartureAt: string | null
+  readonly actualArrivalAt: string | null
 }

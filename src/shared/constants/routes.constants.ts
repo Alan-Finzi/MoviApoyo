@@ -6,17 +6,27 @@ export const ROUTES = {
   TRIPS: '/traslados',
   TRIP_DETAIL: '/traslados/:id',
   DRIVERS: '/choferes',
+  DRIVER_DETAIL: '/choferes/:id',
   VEHICLES: '/vehiculos',
-  PASSENGERS: '/pasajeros',
+  // "Paciente" es el término que usa el negocio para el niño trasladado
+  // (rule del dominio de MoviApoyo). La entidad en el código sigue
+  // llamándose Passenger — esto es solo la ruta/etiqueta visible.
+  PASSENGERS: '/pacientes',
+  PASSENGER_DETAIL: '/pacientes/:id',
   NOTIFICATIONS: '/notificaciones',
   INCIDENTS: '/incidentes',
   SETTINGS: '/configuracion',
   NOTIFICATION_SETTINGS: '/configuracion/notificaciones',
-  // Rutas planificadas para las futuras experiencias de padres y choferes
-  // (rule 58 y 59). No se implementan todavía: solo se reserva el path.
-  FAMILY: '/familia',
 } as const
 
 export function buildTripDetailRoute(tripId: string): string {
   return `/traslados/${tripId}`
+}
+
+export function buildDriverDetailRoute(driverId: string): string {
+  return `/choferes/${driverId}`
+}
+
+export function buildPassengerDetailRoute(passengerId: string): string {
+  return `/pacientes/${passengerId}`
 }

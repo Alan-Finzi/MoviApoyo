@@ -5,6 +5,7 @@ import type { TripStatus } from '@/domain/enums/TripStatus'
 // entidad relacionada por su cuenta.
 export interface TripListItemDto {
   readonly id: string
+  readonly passengerId: string
   readonly childFullName: string
   readonly scheduledDeparture: string
   readonly estimatedArrival: string

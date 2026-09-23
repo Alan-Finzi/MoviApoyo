@@ -8,8 +8,8 @@ export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
   [NotificationType.VEHICLE_APPROACHING]: 'Vehículo acercándose',
   [NotificationType.DELAY]: 'Demora',
   [NotificationType.INCIDENT]: 'Incidente',
-  [NotificationType.CHILD_PICKED_UP]: 'Niño recogido',
-  [NotificationType.CHILD_DELIVERED]: 'Niño entregado',
+  [NotificationType.CHILD_PICKED_UP]: 'Paciente recogido',
+  [NotificationType.CHILD_DELIVERED]: 'Paciente entregado',
 }
 
 // Colores del centro de notificaciones (rule 14): 🟢🟡🔴🔵🟣.

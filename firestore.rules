@@ -1,0 +1,61 @@
+rules_version = '2';
+
+// Reglas de seguridad de Firestore para MoviApoyo.
+//
+// Cualquier miembro del staff autenticado (admin/coordinador, vía Firebase
+// Authentication — ver docs/firebase.md) puede leer y escribir los datos
+// operativos (traslados, choferes, vehículos, pacientes, tutores,
+// incidentes, notificaciones y configuración). Choferes y padres/tutores
+// NUNCA acceden a Firestore directamente desde el navegador: interactúan
+// por WhatsApp, y es la Cloud Function del webhook (con el Admin SDK, que
+// no pasa por estas reglas) la que lee/escribe en su nombre (ver
+// docs/whatsapp-bot.md).
+//
+// /admins/{uid} es la excepción: guarda el rol de cada usuario de staff, y
+// por eso NINGÚN cliente puede escribirlo (ni siquiera el propio usuario),
+// solo leer su propio documento. Asignar o cambiar un rol es una acción
+// manual desde la consola de Firebase (Firestore Database > admins) — nunca
+// desde la app, para que nadie pueda autoasignarse permisos.
+//
+// A propósito no se usa `match /{document=**}` para el resto: en Firestore,
+// si CUALQUIER regla que matchea un path permite la operación, esta queda
+// permitida sin importar reglas más específicas — un wildcard así también
+// cubriría /admins y anularía la restricción de arriba. Por eso cada
+// colección tiene su propio `match` explícito.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    match /admins/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    match /trips/{tripId} {
+      allow read, write: if isSignedIn();
+    }
+    match /drivers/{driverId} {
+      allow read, write: if isSignedIn();
+    }
+    match /vehicles/{vehicleId} {
+      allow read, write: if isSignedIn();
+    }
+    match /passengers/{passengerId} {
+      allow read, write: if isSignedIn();
+    }
+    match /guardians/{guardianId} {
+      allow read, write: if isSignedIn();
+    }
+    match /incidents/{incidentId} {
+      allow read, write: if isSignedIn();
+    }
+    match /notifications/{notificationId} {
+      allow read, write: if isSignedIn();
+    }
+    match /settings/{settingId} {
+      allow read, write: if isSignedIn();
+    }
+  }
+}

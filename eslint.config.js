@@ -11,7 +11,12 @@ import tseslint from 'typescript-eslint'
 // arquitectura Clean Architecture depende fuertemente de tipos correctos
 // entre capas (Domain, Application, Infrastructure, Presentation).
 export default tseslint.config(
-  { ignores: ['dist', 'node_modules', 'coverage'] },
+  {
+    // functions/ es un proyecto Node aparte (Cloud Functions), con su
+    // propio package.json y tsconfig.json — se lintea/instala por separado
+    // (ver functions/README.md), no como parte de esta app de Vite.
+    ignores: ['dist', 'node_modules', 'coverage', 'functions'],
+  },
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

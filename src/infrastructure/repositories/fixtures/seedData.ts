@@ -254,6 +254,8 @@ export const tripsSeed: Trip[] = [
       },
     ],
     notifiedMilestones: [],
+    actualDepartureAt: todayAt(8, 0),
+    actualArrivalAt: null,
   },
   {
     id: 'trip-2',
@@ -278,6 +280,8 @@ export const tripsSeed: Trip[] = [
       },
     ],
     notifiedMilestones: [],
+    actualDepartureAt: null,
+    actualArrivalAt: null,
   },
   {
     id: 'trip-3',
@@ -310,6 +314,11 @@ export const tripsSeed: Trip[] = [
       },
     ],
     notifiedMilestones: ['NEAR_PICKUP'],
+    // Salió y llegó unos minutos más tarde de lo programado: es justamente
+    // el tipo de variación que GetScheduleRecommendationUseCase agrega
+    // entre varios viajes para sugerir un ajuste de horario.
+    actualDepartureAt: todayAt(7, 4),
+    actualArrivalAt: todayAt(7, 39),
   },
   {
     id: 'trip-4',
@@ -342,6 +351,8 @@ export const tripsSeed: Trip[] = [
       },
     ],
     notifiedMilestones: [],
+    actualDepartureAt: todayAt(8, 15),
+    actualArrivalAt: null,
   },
 ]
 

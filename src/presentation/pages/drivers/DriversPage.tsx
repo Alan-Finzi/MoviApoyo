@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { Link } from 'react-router-dom'
 
 import type { Driver } from '@/domain/entities/Driver'
 import { getDriverFullName } from '@/domain/entities/Driver'
@@ -11,6 +12,7 @@ import { Table, type TableColumn } from '@/presentation/components/Table'
 import { useDrivers } from '@/presentation/hooks/useDrivers'
 import { useTrips } from '@/presentation/hooks/useTrips'
 import { useVehicles } from '@/presentation/hooks/useVehicles'
+import { buildDriverDetailRoute } from '@/shared/constants/routes.constants'
 import { DRIVER_STATUS_LABELS, DRIVER_STATUS_TONE } from '@/shared/constants/vehicle.constants'
 import { formatPhone } from '@/shared/utils/formatPhone'
 import { formatVehiclePlate } from '@/shared/utils/formatVehiclePlate'
@@ -47,10 +49,10 @@ export function DriversPage() {
       key: 'name',
       header: 'Chofer',
       render: (driver) => (
-        <span className={styles.driverCell}>
+        <Link to={buildDriverDetailRoute(driver.id)} className={styles.driverCell}>
           <Avatar fullName={getDriverFullName(driver)} photoUrl={driver.photoUrl} size="sm" />
           {getDriverFullName(driver)}
-        </span>
+        </Link>
       ),
     },
     { key: 'phone', header: 'Teléfono', render: (driver) => formatPhone(driver.phone) },

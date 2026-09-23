@@ -3,9 +3,11 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { UserRole } from '@/domain/enums/UserRole'
 import { AppLayout } from '@/presentation/layouts/AppLayout'
 import { DashboardPage } from '@/presentation/pages/dashboard/DashboardPage'
+import { DriverDetailPage } from '@/presentation/pages/drivers/DriverDetailPage'
 import { DriversPage } from '@/presentation/pages/drivers/DriversPage'
 import { IncidentsPage } from '@/presentation/pages/incidents/IncidentsPage'
 import { NotificationsPage } from '@/presentation/pages/notifications/NotificationsPage'
+import { PassengerDetailPage } from '@/presentation/pages/passengers/PassengerDetailPage'
 import { PassengersPage } from '@/presentation/pages/passengers/PassengersPage'
 import { NotificationSettingsPage } from '@/presentation/pages/settings/NotificationSettingsPage'
 import { TripDetailPage } from '@/presentation/pages/trips/TripDetailPage'
@@ -36,6 +38,14 @@ export function AppRouter() {
             }
           />
           <Route
+            path={ROUTES.DRIVER_DETAIL}
+            element={
+              <RoleGuard allowedRoles={OPERATIONS_ROLES}>
+                <DriverDetailPage />
+              </RoleGuard>
+            }
+          />
+          <Route
             path={ROUTES.VEHICLES}
             element={
               <RoleGuard allowedRoles={OPERATIONS_ROLES}>
@@ -48,6 +58,14 @@ export function AppRouter() {
             element={
               <RoleGuard allowedRoles={OPERATIONS_ROLES}>
                 <PassengersPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path={ROUTES.PASSENGER_DETAIL}
+            element={
+              <RoleGuard allowedRoles={OPERATIONS_ROLES}>
+                <PassengerDetailPage />
               </RoleGuard>
             }
           />

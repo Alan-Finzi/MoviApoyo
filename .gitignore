@@ -13,6 +13,12 @@ dist-ssr
 coverage
 *.local
 
+# Cloud Functions (proyecto Node aparte, ver functions/)
+functions/lib
+firebase-debug.log
+firebase-debug.*.log
+.firebase/
+
 # Variables de entorno con secretos reales o overrides locales. Los
 # .env.development / .env.test / .env.production con valores por defecto
 # (sin secretos) sí se versionan (rule 23).

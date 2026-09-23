@@ -13,7 +13,7 @@ export const TRIP_STATUS_LABELS: Record<TripStatus, string> = {
   [TripStatus.ON_THE_WAY]: 'Chofer en camino',
   [TripStatus.NEAR_HOME]: 'Cerca del domicilio',
   [TripStatus.ARRIVING]: 'Llegando',
-  [TripStatus.PICKED_UP]: 'Niño recogido',
+  [TripStatus.PICKED_UP]: 'Paciente recogido',
   [TripStatus.IN_TRANSIT]: 'En traslado',
   [TripStatus.NEAR_DESTINATION]: 'Cerca del destino',
   [TripStatus.COMPLETED]: 'Entregado',
