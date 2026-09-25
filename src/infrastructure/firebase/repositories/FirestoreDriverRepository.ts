@@ -1,4 +1,5 @@
 import {
+  addDoc,
   collection,
   doc,
   getDoc,
@@ -14,6 +15,7 @@ import { createPhoneNumber } from '@/domain/valueObjects/PhoneNumber'
 import { NotFoundError } from '@/shared/errors/AppError'
 
 import { asDocumentShape } from '../firestoreData'
+import { stripUndefined } from '../stripUndefined'
 
 const COLLECTION = 'drivers'
 
@@ -55,5 +57,10 @@ export class FirestoreDriverRepository implements DriverRepository {
     const docSnap = await getDoc(doc(this.firestore, COLLECTION, id))
     if (!docSnap.exists()) throw new NotFoundError(`No existe el chofer con id "${id}".`)
     return fromFirestore(docSnap.id, docSnap.data())
+  }
+
+  async registerDriver(driver: Omit<Driver, 'id'>): Promise<Driver> {
+    const docRef = await addDoc(collection(this.firestore, COLLECTION), stripUndefined(driver))
+    return { ...driver, id: docRef.id }
   }
 }

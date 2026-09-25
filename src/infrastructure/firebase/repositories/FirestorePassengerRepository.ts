@@ -1,4 +1,5 @@
 import {
+  addDoc,
   collection,
   doc,
   getDoc,
@@ -13,6 +14,7 @@ import type { PassengerRepository } from '@/domain/repositories/PassengerReposit
 import { NotFoundError } from '@/shared/errors/AppError'
 
 import { asDocumentShape } from '../firestoreData'
+import { stripUndefined } from '../stripUndefined'
 
 const COLLECTION = 'passengers'
 // Colección separada a propósito (rule 12): permite reglas de seguridad más
@@ -59,6 +61,11 @@ export class FirestorePassengerRepository implements PassengerRepository {
     const docSnap = await getDoc(doc(this.firestore, COLLECTION, id))
     if (!docSnap.exists()) throw new NotFoundError(`No existe el paciente con id "${id}".`)
     return fromFirestore(docSnap.id, docSnap.data())
+  }
+
+  async registerPassenger(passenger: Omit<Passenger, 'id'>): Promise<Passenger> {
+    const docRef = await addDoc(collection(this.firestore, COLLECTION), stripUndefined(passenger))
+    return { ...passenger, id: docRef.id }
   }
 
   async getSensitiveInfo(passengerId: string): Promise<PassengerSensitiveInfo> {

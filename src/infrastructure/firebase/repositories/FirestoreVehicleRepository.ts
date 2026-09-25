@@ -1,4 +1,5 @@
 import {
+  addDoc,
   collection,
   doc,
   getDoc,
@@ -14,6 +15,7 @@ import { createLicensePlate } from '@/domain/valueObjects/LicensePlate'
 import { NotFoundError } from '@/shared/errors/AppError'
 
 import { asDocumentShape } from '../firestoreData'
+import { stripUndefined } from '../stripUndefined'
 
 const COLLECTION = 'vehicles'
 
@@ -57,5 +59,10 @@ export class FirestoreVehicleRepository implements VehicleRepository {
     const docSnap = await getDoc(doc(this.firestore, COLLECTION, id))
     if (!docSnap.exists()) throw new NotFoundError(`No existe el vehículo con id "${id}".`)
     return fromFirestore(docSnap.id, docSnap.data())
+  }
+
+  async registerVehicle(vehicle: Omit<Vehicle, 'id'>): Promise<Vehicle> {
+    const docRef = await addDoc(collection(this.firestore, COLLECTION), stripUndefined(vehicle))
+    return { ...vehicle, id: docRef.id }
   }
 }

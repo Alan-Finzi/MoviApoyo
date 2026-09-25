@@ -58,6 +58,7 @@ function buildUseCase() {
   const tripRepository: TripRepository = {
     getTrips: () => Promise.reject(new Error('no usado en este test')),
     getTripById: () => Promise.reject(new Error('no usado en este test')),
+    registerTrip: () => Promise.reject(new Error('no usado en este test')),
     updateTrip: () => Promise.reject(new Error('no usado en este test')),
     appendTripEvent: () => Promise.reject(new Error('no usado en este test')),
     markMilestoneNotified,
@@ -66,6 +67,7 @@ function buildUseCase() {
   const passengerRepository: PassengerRepository = {
     getPassengers: () => Promise.reject(new Error('no usado en este test')),
     getPassengerById: () => Promise.resolve(passenger),
+    registerPassenger: () => Promise.reject(new Error('no usado en este test')),
     getSensitiveInfo: () => Promise.reject(new Error('no usado en este test')),
   }
   const notificationSettingsRepository: NotificationSettingsRepository = {

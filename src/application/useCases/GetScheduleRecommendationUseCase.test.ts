@@ -31,6 +31,7 @@ function buildRepository(trips: readonly Trip[]): TripRepository {
   return {
     getTrips: () => Promise.resolve([...trips]),
     getTripById: () => Promise.reject(new Error('no usado en este test')),
+    registerTrip: () => Promise.reject(new Error('no usado en este test')),
     updateTrip: () => Promise.reject(new Error('no usado en este test')),
     appendTripEvent: () => Promise.reject(new Error('no usado en este test')),
     markMilestoneNotified: () => Promise.reject(new Error('no usado en este test')),

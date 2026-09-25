@@ -14,4 +14,10 @@ export class MockDriverRepository implements DriverRepository {
     if (!driver) throw new NotFoundError(`No existe el chofer con id "${id}".`)
     return Promise.resolve(driver)
   }
+
+  registerDriver(driver: Omit<Driver, 'id'>): Promise<Driver> {
+    const newDriver: Driver = { ...driver, id: `driver-${crypto.randomUUID()}` }
+    driversStore.setState((drivers) => [...drivers, newDriver])
+    return Promise.resolve(newDriver)
+  }
 }

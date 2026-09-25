@@ -16,6 +16,12 @@ export class MockPassengerRepository implements PassengerRepository {
     return Promise.resolve(passenger)
   }
 
+  registerPassenger(passenger: Omit<Passenger, 'id'>): Promise<Passenger> {
+    const newPassenger: Passenger = { ...passenger, id: `passenger-${crypto.randomUUID()}` }
+    passengersStore.setState((passengers) => [...passengers, newPassenger])
+    return Promise.resolve(newPassenger)
+  }
+
   getSensitiveInfo(passengerId: string): Promise<PassengerSensitiveInfo> {
     const info = passengerSensitiveInfoSeed[passengerId]
     if (!info) {

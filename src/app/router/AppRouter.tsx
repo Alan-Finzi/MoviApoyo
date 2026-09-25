@@ -12,6 +12,7 @@ import { PassengersPage } from '@/presentation/pages/passengers/PassengersPage'
 import { NotificationSettingsPage } from '@/presentation/pages/settings/NotificationSettingsPage'
 import { TripDetailPage } from '@/presentation/pages/trips/TripDetailPage'
 import { TripsListPage } from '@/presentation/pages/trips/TripsListPage'
+import { VehicleDetailPage } from '@/presentation/pages/vehicles/VehicleDetailPage'
 import { VehiclesPage } from '@/presentation/pages/vehicles/VehiclesPage'
 import { ROUTES } from '@/shared/constants/routes.constants'
 
@@ -50,6 +51,14 @@ export function AppRouter() {
             element={
               <RoleGuard allowedRoles={OPERATIONS_ROLES}>
                 <VehiclesPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path={ROUTES.VEHICLE_DETAIL}
+            element={
+              <RoleGuard allowedRoles={OPERATIONS_ROLES}>
+                <VehicleDetailPage />
               </RoleGuard>
             }
           />

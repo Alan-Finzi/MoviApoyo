@@ -19,6 +19,10 @@ export class MockAuthRepository implements AuthRepository {
     return Promise.resolve()
   }
 
+  signInWithGoogle(): Promise<void> {
+    return Promise.resolve()
+  }
+
   signOut(): Promise<void> {
     return Promise.resolve()
   }

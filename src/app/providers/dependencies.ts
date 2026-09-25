@@ -20,7 +20,11 @@ import { GetTripsUseCase } from '@/application/useCases/GetTripsUseCase'
 import { GetVehicleByIdUseCase } from '@/application/useCases/GetVehicleByIdUseCase'
 import { GetVehicleLocationUseCase } from '@/application/useCases/GetVehicleLocationUseCase'
 import { GetVehiclesUseCase } from '@/application/useCases/GetVehiclesUseCase'
+import { RegisterDriverUseCase } from '@/application/useCases/RegisterDriverUseCase'
 import { RegisterIncidentUseCase } from '@/application/useCases/RegisterIncidentUseCase'
+import { RegisterPassengerUseCase } from '@/application/useCases/RegisterPassengerUseCase'
+import { RegisterTripUseCase } from '@/application/useCases/RegisterTripUseCase'
+import { RegisterVehicleUseCase } from '@/application/useCases/RegisterVehicleUseCase'
 import { SendNotificationUseCase } from '@/application/useCases/SendNotificationUseCase'
 import { StartTripUseCase } from '@/application/useCases/StartTripUseCase'
 import { UpdateNotificationSettingsUseCase } from '@/application/useCases/UpdateNotificationSettingsUseCase'
@@ -184,10 +188,14 @@ export const useCases = {
   updateNotificationSettings: new UpdateNotificationSettingsUseCase(notificationSettingsRepository),
   getDrivers: new GetDriversUseCase(driverRepository),
   getDriverById: new GetDriverByIdUseCase(driverRepository),
+  registerDriver: new RegisterDriverUseCase(driverRepository),
   getVehicles: new GetVehiclesUseCase(vehicleRepository),
   getVehicleById: new GetVehicleByIdUseCase(vehicleRepository),
+  registerVehicle: new RegisterVehicleUseCase(vehicleRepository),
   getPassengers: new GetPassengersUseCase(passengerRepository),
   getPassengerById: new GetPassengerByIdUseCase(passengerRepository),
+  registerPassenger: new RegisterPassengerUseCase(passengerRepository),
+  registerTrip: new RegisterTripUseCase(tripRepository, passengerRepository),
   getGuardians: new GetGuardiansUseCase(guardianRepository),
   getPassengerSensitiveInfo: new GetPassengerSensitiveInfoUseCase(passengerRepository),
   getIncidents: new GetIncidentsUseCase(incidentRepository),

@@ -1,13 +1,15 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import type { Driver } from '@/domain/entities/Driver'
 import { getDriverFullName } from '@/domain/entities/Driver'
 import { Avatar } from '@/presentation/components/Avatar'
 import { Badge } from '@/presentation/components/Badge'
+import { Button } from '@/presentation/components/Button'
 import { EmptyState } from '@/presentation/components/EmptyState'
 import { ErrorState } from '@/presentation/components/ErrorState'
 import { LoadingState } from '@/presentation/components/LoadingState'
+import { Modal } from '@/presentation/components/Modal'
 import { Table, type TableColumn } from '@/presentation/components/Table'
 import { useDrivers } from '@/presentation/hooks/useDrivers'
 import { useTrips } from '@/presentation/hooks/useTrips'
@@ -17,12 +19,22 @@ import { DRIVER_STATUS_LABELS, DRIVER_STATUS_TONE } from '@/shared/constants/veh
 import { formatPhone } from '@/shared/utils/formatPhone'
 import { formatVehiclePlate } from '@/shared/utils/formatVehiclePlate'
 
+import { DriverForm } from './DriverForm'
 import styles from './DriversPage.module.css'
 
 export function DriversPage() {
   const drivers = useDrivers()
   const vehicles = useVehicles()
   const trips = useTrips()
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  const vehicleOptions = useMemo(() => {
+    if (vehicles.state.status !== 'success') return []
+    return vehicles.state.data.map((vehicle) => ({
+      value: vehicle.id,
+      label: `${formatVehiclePlate(vehicle.licensePlate)} — ${vehicle.brand} ${vehicle.model}`,
+    }))
+  }, [vehicles.state])
 
   const vehiclePlateById = useMemo(() => {
     if (vehicles.state.status !== 'success') return new Map<string, string>()
@@ -80,7 +92,11 @@ export function DriversPage() {
 
   return (
     <div>
-      <h1 className={styles.title}>Choferes</h1>
+      <div className={styles.header}>
+        <h1 className={styles.title}>Choferes</h1>
+        <Button onClick={() => setIsModalOpen(true)}>Nuevo chofer</Button>
+      </div>
+
       {drivers.state.status === 'loading' && <LoadingState message="Cargando choferes…" />}
       {drivers.state.status === 'error' && (
         <ErrorState message={drivers.state.message} onRetry={drivers.reload} />
@@ -89,6 +105,16 @@ export function DriversPage() {
       {drivers.state.status === 'success' && (
         <Table columns={columns} rows={drivers.state.data} getRowKey={(driver) => driver.id} />
       )}
+
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Nuevo chofer">
+        <DriverForm
+          vehicleOptions={vehicleOptions}
+          onRegistered={() => {
+            setIsModalOpen(false)
+            drivers.reload()
+          }}
+        />
+      </Modal>
     </div>
   )
 }

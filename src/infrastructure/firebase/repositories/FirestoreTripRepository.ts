@@ -1,4 +1,5 @@
 import {
+  addDoc,
   arrayUnion,
   collection,
   doc,
@@ -76,6 +77,11 @@ export class FirestoreTripRepository implements TripRepository {
     const docSnap = await getDoc(doc(this.firestore, COLLECTION, id))
     if (!docSnap.exists()) throw new NotFoundError(`No existe el traslado con id "${id}".`)
     return fromFirestore(docSnap.id, docSnap.data())
+  }
+
+  async registerTrip(trip: Omit<Trip, 'id'>): Promise<Trip> {
+    const docRef = await addDoc(collection(this.firestore, COLLECTION), stripUndefined(trip))
+    return { ...trip, id: docRef.id }
   }
 
   async updateTrip(id: string, changes: TripMutableFields): Promise<Trip> {

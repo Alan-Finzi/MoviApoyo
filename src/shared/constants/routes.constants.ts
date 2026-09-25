@@ -8,6 +8,7 @@ export const ROUTES = {
   DRIVERS: '/choferes',
   DRIVER_DETAIL: '/choferes/:id',
   VEHICLES: '/vehiculos',
+  VEHICLE_DETAIL: '/vehiculos/:id',
   // "Paciente" es el término que usa el negocio para el niño trasladado
   // (rule del dominio de MoviApoyo). La entidad en el código sigue
   // llamándose Passenger — esto es solo la ruta/etiqueta visible.
@@ -25,6 +26,10 @@ export function buildTripDetailRoute(tripId: string): string {
 
 export function buildDriverDetailRoute(driverId: string): string {
   return `/choferes/${driverId}`
+}
+
+export function buildVehicleDetailRoute(vehicleId: string): string {
+  return `/vehiculos/${vehicleId}`
 }
 
 export function buildPassengerDetailRoute(passengerId: string): string {

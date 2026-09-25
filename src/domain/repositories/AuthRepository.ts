@@ -8,7 +8,13 @@ export interface AuthRepository {
   // reacciona a login/logout sin hacer polling.
   observeAuthState(callback: (session: AuthSession) => void): () => void
   signIn(email: string, password: string): Promise<void>
+  signInWithGoogle(): Promise<void>
   signOut(): Promise<void>
+  // Solo lo implementa FirestoreAuthRepository: si signInWithGoogle tuvo que
+  // caer a signInWithRedirect (popup bloqueado o mobile), el resultado (o el
+  // error) llega recién en la carga siguiente de la página, no como
+  // excepción de esa llamada. LoginPage lo consulta una vez al montar.
+  checkRedirectResult?(): Promise<string | null>
   // Solo lo implementa MockAuthRepository: permite simular otro rol sin
   // login real, para poder navegar todas las vistas sin backend. Con
   // Firebase real este método no existe, y Topbar muestra en su lugar el

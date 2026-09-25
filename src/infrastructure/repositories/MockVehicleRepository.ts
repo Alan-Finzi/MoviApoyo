@@ -14,4 +14,10 @@ export class MockVehicleRepository implements VehicleRepository {
     if (!vehicle) throw new NotFoundError(`No existe el vehículo con id "${id}".`)
     return Promise.resolve(vehicle)
   }
+
+  registerVehicle(vehicle: Omit<Vehicle, 'id'>): Promise<Vehicle> {
+    const newVehicle: Vehicle = { ...vehicle, id: `vehicle-${crypto.randomUUID()}` }
+    vehiclesStore.setState((vehicles) => [...vehicles, newVehicle])
+    return Promise.resolve(newVehicle)
+  }
 }

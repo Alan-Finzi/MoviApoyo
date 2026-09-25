@@ -16,6 +16,12 @@ export class MockTripRepository implements TripRepository {
     return Promise.resolve(trip)
   }
 
+  registerTrip(trip: Omit<Trip, 'id'>): Promise<Trip> {
+    const newTrip: Trip = { ...trip, id: `trip-${crypto.randomUUID()}` }
+    tripsStore.setState((trips) => [...trips, newTrip])
+    return Promise.resolve(newTrip)
+  }
+
   updateTrip(id: string, changes: TripMutableFields): Promise<Trip> {
     return Promise.resolve(this.mutate(id, (trip) => ({ ...trip, ...changes })))
   }

@@ -18,6 +18,7 @@ export type TripMutableFields = Partial<
 export interface TripRepository {
   getTrips(): Promise<Trip[]>
   getTripById(id: string): Promise<Trip>
+  registerTrip(trip: Omit<Trip, 'id'>): Promise<Trip>
   updateTrip(id: string, changes: TripMutableFields): Promise<Trip>
   appendTripEvent(id: string, event: Omit<TripEvent, 'id'>): Promise<Trip>
   markMilestoneNotified(id: string, milestone: string): Promise<Trip>
