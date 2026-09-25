@@ -4,6 +4,7 @@ import type { Driver } from '@/domain/entities/Driver'
 import type { Guardian } from '@/domain/entities/Guardian'
 import type { Incident } from '@/domain/entities/Incident'
 import type { Passenger } from '@/domain/entities/Passenger'
+import type { PassengerDestination } from '@/domain/entities/PassengerDestination'
 import type { Trip } from '@/domain/entities/Trip'
 import type { AuthenticatedUser } from '@/domain/entities/User'
 import type { Vehicle } from '@/domain/entities/Vehicle'
@@ -27,6 +28,9 @@ export const tripsStore = createStore<Trip[]>(tripsSeed)
 export const driversStore = createStore<Driver[]>(driversSeed)
 export const vehiclesStore = createStore<Vehicle[]>(vehiclesSeed)
 export const passengersStore = createStore<Passenger[]>(passengersSeed)
+// Sin datos de ejemplo (rule 26): se empieza vacío y se carga desde la
+// pestaña "Destinos" del paciente.
+export const passengerDestinationsStore = createStore<PassengerDestination[]>([])
 export const guardiansStore = createStore<Guardian[]>(guardiansSeed)
 export const incidentsStore = createStore<Incident[]>([])
 export const notificationsStore = createStore<AppNotification[]>([])

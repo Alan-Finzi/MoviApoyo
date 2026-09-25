@@ -45,6 +45,9 @@ service cloud.firestore {
     match /passengers/{passengerId} {
       allow read, write: if isSignedIn();
     }
+    match /passengerDestinations/{destinationId} {
+      allow read, write: if isSignedIn();
+    }
     match /guardians/{guardianId} {
       allow read, write: if isSignedIn();
     }

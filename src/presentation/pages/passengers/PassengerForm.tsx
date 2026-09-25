@@ -9,13 +9,10 @@ import { Button } from '@/presentation/components/Button'
 import { Input } from '@/presentation/components/Input'
 import { LocationPickerMap } from '@/presentation/components/LocationPickerMap'
 import { Select, type SelectOption } from '@/presentation/components/Select'
+import { DEFAULT_MAP_CENTER } from '@/shared/constants/app.constants'
 import { toAppError } from '@/shared/errors/AppError'
 
 import styles from './PassengerForm.module.css'
-
-// Centro de referencia para el mapa cuando todavía no se marcó ningún punto
-// (Buenos Aires — coincide con la zona de los domicilios de ejemplo).
-const DEFAULT_CENTER = { latitude: -34.6037, longitude: -58.3816 }
 
 const passengerFormSchema = z.object({
   firstName: z.string().min(1, 'Ingresá el nombre.'),
@@ -55,11 +52,11 @@ export function PassengerForm({ guardianOptions, onRegistered }: PassengerFormPr
       firstName: '',
       lastName: '',
       homeAddressStreet: '',
-      homeLatitude: DEFAULT_CENTER.latitude,
-      homeLongitude: DEFAULT_CENTER.longitude,
+      homeLatitude: DEFAULT_MAP_CENTER.latitude,
+      homeLongitude: DEFAULT_MAP_CENTER.longitude,
       destinationAddressStreet: '',
-      destinationLatitude: DEFAULT_CENTER.latitude,
-      destinationLongitude: DEFAULT_CENTER.longitude,
+      destinationLatitude: DEFAULT_MAP_CENTER.latitude,
+      destinationLongitude: DEFAULT_MAP_CENTER.longitude,
       guardianId: '',
     },
   })

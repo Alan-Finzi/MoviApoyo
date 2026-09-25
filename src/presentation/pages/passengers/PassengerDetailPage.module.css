@@ -57,3 +57,16 @@
   gap: var(--space-4);
   flex-wrap: wrap;
 }
+
+.destinationsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.destinationLabel {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}

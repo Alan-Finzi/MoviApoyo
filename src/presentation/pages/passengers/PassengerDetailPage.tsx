@@ -11,12 +11,14 @@ import { Card } from '@/presentation/components/Card'
 import { EmptyState } from '@/presentation/components/EmptyState'
 import { ErrorState } from '@/presentation/components/ErrorState'
 import { LoadingState } from '@/presentation/components/LoadingState'
+import { Modal } from '@/presentation/components/Modal'
 import { StatusBadge } from '@/presentation/components/StatusBadge'
 import { Table, type TableColumn } from '@/presentation/components/Table'
 import { Tabs } from '@/presentation/components/Tabs'
 import { useGuardians } from '@/presentation/hooks/useGuardians'
 import { useNotificationsByPassenger } from '@/presentation/hooks/useNotificationsByPassenger'
 import { usePassenger } from '@/presentation/hooks/usePassenger'
+import { usePassengerDestinations } from '@/presentation/hooks/usePassengerDestinations'
 import { useScheduleRecommendation } from '@/presentation/hooks/useScheduleRecommendation'
 import { useTripsByPassenger } from '@/presentation/hooks/useTripsByPassenger'
 import {
@@ -24,8 +26,10 @@ import {
   NOTIFICATION_TYPE_TONE,
 } from '@/shared/constants/notification.constants'
 import { formatDateTime, formatTime } from '@/shared/utils/date'
+import { formatDestinationSchedule } from '@/shared/utils/formatDestinationSchedule'
 import { formatPhone } from '@/shared/utils/formatPhone'
 
+import { PassengerDestinationForm } from './PassengerDestinationForm'
 import styles from './PassengerDetailPage.module.css'
 
 const TRIP_COLUMNS: readonly TableColumn<TripListItemDto>[] = [
@@ -107,6 +111,54 @@ function ScheduleTab({ passengerId }: { readonly passengerId: string }) {
         </p>
       )}
     </Card>
+  )
+}
+
+function DestinationsTab({ passengerId }: { readonly passengerId: string }) {
+  const destinations = usePassengerDestinations(passengerId)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  return (
+    <div>
+      <div className={styles.destinationsHeader}>
+        <p className={styles.infoLabel}>
+          Además del domicilio y destino principal, un paciente puede tener otros destinos
+          habituales (ej. kinesiología, un turno médico puntual) con su propio horario.
+        </p>
+        <Button onClick={() => setIsModalOpen(true)}>Nuevo destino</Button>
+      </div>
+
+      {destinations.state.status === 'loading' && <LoadingState message="Cargando destinos…" />}
+      {destinations.state.status === 'error' && (
+        <ErrorState message={destinations.state.message} onRetry={destinations.reload} />
+      )}
+      {destinations.state.status === 'empty' && (
+        <EmptyState title="Todavía no hay destinos adicionales cargados" />
+      )}
+      {destinations.state.status === 'success' && (
+        <div className={styles.notificationList}>
+          {destinations.state.data.map((destination) => (
+            <Card key={destination.id} className={styles.notificationItem}>
+              <div>
+                <p className={styles.destinationLabel}>{destination.label}</p>
+                <span className={styles.infoLabel}>{destination.address.street}</span>
+              </div>
+              <Badge tone="info">{formatDestinationSchedule(destination)}</Badge>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Nuevo destino">
+        <PassengerDestinationForm
+          passengerId={passengerId}
+          onRegistered={() => {
+            setIsModalOpen(false)
+            destinations.reload()
+          }}
+        />
+      </Modal>
+    </div>
   )
 }
 
@@ -205,6 +257,11 @@ export function PassengerDetailPage() {
       <Tabs
         tabs={[
           { id: 'trips', label: 'Viajes', content: <TripsTab passengerId={passengerId} /> },
+          {
+            id: 'destinations',
+            label: 'Destinos',
+            content: <DestinationsTab passengerId={passengerId} />,
+          },
           {
             id: 'notifications',
             label: 'Notificaciones',

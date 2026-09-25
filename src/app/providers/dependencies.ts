@@ -9,6 +9,7 @@ import { GetNotificationSettingsUseCase } from '@/application/useCases/GetNotifi
 import { GetNotificationsByPassengerUseCase } from '@/application/useCases/GetNotificationsByPassengerUseCase'
 import { GetNotificationsUseCase } from '@/application/useCases/GetNotificationsUseCase'
 import { GetPassengerByIdUseCase } from '@/application/useCases/GetPassengerByIdUseCase'
+import { GetPassengerDestinationsUseCase } from '@/application/useCases/GetPassengerDestinationsUseCase'
 import { GetPassengerSensitiveInfoUseCase } from '@/application/useCases/GetPassengerSensitiveInfoUseCase'
 import { GetPassengersUseCase } from '@/application/useCases/GetPassengersUseCase'
 import { GetScheduleRecommendationUseCase } from '@/application/useCases/GetScheduleRecommendationUseCase'
@@ -22,6 +23,7 @@ import { GetVehicleLocationUseCase } from '@/application/useCases/GetVehicleLoca
 import { GetVehiclesUseCase } from '@/application/useCases/GetVehiclesUseCase'
 import { RegisterDriverUseCase } from '@/application/useCases/RegisterDriverUseCase'
 import { RegisterIncidentUseCase } from '@/application/useCases/RegisterIncidentUseCase'
+import { RegisterPassengerDestinationUseCase } from '@/application/useCases/RegisterPassengerDestinationUseCase'
 import { RegisterPassengerUseCase } from '@/application/useCases/RegisterPassengerUseCase'
 import { RegisterTripUseCase } from '@/application/useCases/RegisterTripUseCase'
 import { RegisterVehicleUseCase } from '@/application/useCases/RegisterVehicleUseCase'
@@ -35,6 +37,7 @@ import type { GuardianRepository } from '@/domain/repositories/GuardianRepositor
 import type { IncidentRepository } from '@/domain/repositories/IncidentRepository'
 import type { NotificationRepository } from '@/domain/repositories/NotificationRepository'
 import type { NotificationSettingsRepository } from '@/domain/repositories/NotificationSettingsRepository'
+import type { PassengerDestinationRepository } from '@/domain/repositories/PassengerDestinationRepository'
 import type { PassengerRepository } from '@/domain/repositories/PassengerRepository'
 import type { TripRepository } from '@/domain/repositories/TripRepository'
 import type { VehicleRepository } from '@/domain/repositories/VehicleRepository'
@@ -46,6 +49,7 @@ import { FirestoreGuardianRepository } from '@/infrastructure/firebase/repositor
 import { FirestoreIncidentRepository } from '@/infrastructure/firebase/repositories/FirestoreIncidentRepository'
 import { FirestoreNotificationRepository } from '@/infrastructure/firebase/repositories/FirestoreNotificationRepository'
 import { FirestoreNotificationSettingsRepository } from '@/infrastructure/firebase/repositories/FirestoreNotificationSettingsRepository'
+import { FirestorePassengerDestinationRepository } from '@/infrastructure/firebase/repositories/FirestorePassengerDestinationRepository'
 import { FirestorePassengerRepository } from '@/infrastructure/firebase/repositories/FirestorePassengerRepository'
 import { FirestoreTripRepository } from '@/infrastructure/firebase/repositories/FirestoreTripRepository'
 import { FirestoreVehicleRepository } from '@/infrastructure/firebase/repositories/FirestoreVehicleRepository'
@@ -57,6 +61,7 @@ import { MockGuardianRepository } from '@/infrastructure/repositories/MockGuardi
 import { MockIncidentRepository } from '@/infrastructure/repositories/MockIncidentRepository'
 import { MockNotificationRepository } from '@/infrastructure/repositories/MockNotificationRepository'
 import { MockNotificationSettingsRepository } from '@/infrastructure/repositories/MockNotificationSettingsRepository'
+import { MockPassengerDestinationRepository } from '@/infrastructure/repositories/MockPassengerDestinationRepository'
 import { MockPassengerRepository } from '@/infrastructure/repositories/MockPassengerRepository'
 import { MockTripRepository } from '@/infrastructure/repositories/MockTripRepository'
 import { MockVehicleRepository } from '@/infrastructure/repositories/MockVehicleRepository'
@@ -83,6 +88,7 @@ let tripRepositoryImpl: TripRepository
 let driverRepositoryImpl: DriverRepository
 let vehicleRepositoryImpl: VehicleRepository
 let passengerRepositoryImpl: PassengerRepository
+let passengerDestinationRepositoryImpl: PassengerDestinationRepository
 let guardianRepositoryImpl: GuardianRepository
 let incidentRepositoryImpl: IncidentRepository
 let notificationRepositoryImpl: NotificationRepository
@@ -94,6 +100,7 @@ if (env.isFirebaseConfigured) {
   driverRepositoryImpl = new FirestoreDriverRepository(firestore)
   vehicleRepositoryImpl = new FirestoreVehicleRepository(firestore)
   passengerRepositoryImpl = new FirestorePassengerRepository(firestore)
+  passengerDestinationRepositoryImpl = new FirestorePassengerDestinationRepository(firestore)
   guardianRepositoryImpl = new FirestoreGuardianRepository(firestore)
   incidentRepositoryImpl = new FirestoreIncidentRepository(firestore)
   notificationRepositoryImpl = new FirestoreNotificationRepository(firestore)
@@ -103,6 +110,7 @@ if (env.isFirebaseConfigured) {
   driverRepositoryImpl = new MockDriverRepository()
   vehicleRepositoryImpl = new MockVehicleRepository()
   passengerRepositoryImpl = new MockPassengerRepository()
+  passengerDestinationRepositoryImpl = new MockPassengerDestinationRepository()
   guardianRepositoryImpl = new MockGuardianRepository()
   incidentRepositoryImpl = new MockIncidentRepository()
   notificationRepositoryImpl = new MockNotificationRepository()
@@ -117,6 +125,7 @@ export const tripRepository = tripRepositoryImpl
 const driverRepository = driverRepositoryImpl
 const vehicleRepository = vehicleRepositoryImpl
 const passengerRepository = passengerRepositoryImpl
+const passengerDestinationRepository = passengerDestinationRepositoryImpl
 const guardianRepository = guardianRepositoryImpl
 const incidentRepository = incidentRepositoryImpl
 export const notificationRepository = notificationRepositoryImpl
@@ -195,6 +204,10 @@ export const useCases = {
   getPassengers: new GetPassengersUseCase(passengerRepository),
   getPassengerById: new GetPassengerByIdUseCase(passengerRepository),
   registerPassenger: new RegisterPassengerUseCase(passengerRepository),
+  getPassengerDestinations: new GetPassengerDestinationsUseCase(passengerDestinationRepository),
+  registerPassengerDestination: new RegisterPassengerDestinationUseCase(
+    passengerDestinationRepository,
+  ),
   registerTrip: new RegisterTripUseCase(tripRepository, passengerRepository),
   getGuardians: new GetGuardiansUseCase(guardianRepository),
   getPassengerSensitiveInfo: new GetPassengerSensitiveInfoUseCase(passengerRepository),
