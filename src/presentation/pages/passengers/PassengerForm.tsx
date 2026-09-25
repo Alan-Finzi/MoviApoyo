@@ -7,27 +7,29 @@ import { useCases } from '@/app/providers/dependencies'
 import { Alert } from '@/presentation/components/Alert'
 import { Button } from '@/presentation/components/Button'
 import { Input } from '@/presentation/components/Input'
+import { LocationPickerMap } from '@/presentation/components/LocationPickerMap'
 import { Select, type SelectOption } from '@/presentation/components/Select'
 import { toAppError } from '@/shared/errors/AppError'
 
 import styles from './PassengerForm.module.css'
 
+// Centro de referencia para el mapa cuando todavía no se marcó ningún punto
+// (Buenos Aires — coincide con la zona de los domicilios de ejemplo).
+const DEFAULT_CENTER = { latitude: -34.6037, longitude: -58.3816 }
+
 const passengerFormSchema = z.object({
   firstName: z.string().min(1, 'Ingresá el nombre.'),
   lastName: z.string().min(1, 'Ingresá el apellido.'),
   homeAddressStreet: z.string().min(1, 'Ingresá el domicilio.'),
-  homeLatitude: z.coerce.number({ message: 'Ingresá una latitud válida.' }),
-  homeLongitude: z.coerce.number({ message: 'Ingresá una longitud válida.' }),
+  homeLatitude: z.number(),
+  homeLongitude: z.number(),
   destinationAddressStreet: z.string().min(1, 'Ingresá el destino.'),
-  destinationLatitude: z.coerce.number({ message: 'Ingresá una latitud válida.' }),
-  destinationLongitude: z.coerce.number({ message: 'Ingresá una longitud válida.' }),
+  destinationLatitude: z.number(),
+  destinationLongitude: z.number(),
   guardianId: z.string().min(1, 'Seleccioná un tutor.'),
 })
 
-// z.coerce.number() en los campos de coordenadas: mismo patrón dual
-// input/output que el resto de los formularios con inputs numéricos.
-type PassengerFormInput = z.input<typeof passengerFormSchema>
-type PassengerFormOutput = z.output<typeof passengerFormSchema>
+type PassengerFormValues = z.infer<typeof passengerFormSchema>
 
 interface PassengerFormProps {
   readonly guardianOptions: readonly SelectOption[]
@@ -36,29 +38,39 @@ interface PassengerFormProps {
 
 // Alta de paciente (rule: "agregar pacientes"). El tutor se elige entre los
 // que ya existen — el alta de tutores nuevos queda fuera de este alcance.
+// El domicilio/destino se marcan tocando un mapa real (LocationPickerMap,
+// OpenStreetMap) en vez de tipear latitud/longitud a mano.
 export function PassengerForm({ guardianOptions, onRegistered }: PassengerFormProps) {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
     reset,
-  } = useForm<PassengerFormInput, unknown, PassengerFormOutput>({
+  } = useForm<PassengerFormValues>({
     resolver: zodResolver(passengerFormSchema),
     defaultValues: {
       firstName: '',
       lastName: '',
       homeAddressStreet: '',
-      homeLatitude: 0,
-      homeLongitude: 0,
+      homeLatitude: DEFAULT_CENTER.latitude,
+      homeLongitude: DEFAULT_CENTER.longitude,
       destinationAddressStreet: '',
-      destinationLatitude: 0,
-      destinationLongitude: 0,
+      destinationLatitude: DEFAULT_CENTER.latitude,
+      destinationLongitude: DEFAULT_CENTER.longitude,
       guardianId: '',
     },
   })
 
-  async function onSubmit(values: PassengerFormOutput): Promise<void> {
+  const homeLocation = { latitude: watch('homeLatitude'), longitude: watch('homeLongitude') }
+  const destinationLocation = {
+    latitude: watch('destinationLatitude'),
+    longitude: watch('destinationLongitude'),
+  }
+
+  async function onSubmit(values: PassengerFormValues): Promise<void> {
     setSubmitError(null)
     try {
       await useCases.registerPassenger.execute(values)
@@ -87,22 +99,13 @@ export function PassengerForm({ guardianOptions, onRegistered }: PassengerFormPr
           error={errors.homeAddressStreet?.message}
           {...register('homeAddressStreet')}
         />
-        <div className={styles.coordinatesRow}>
-          <Input
-            label="Latitud"
-            type="number"
-            step="any"
-            error={errors.homeLatitude?.message}
-            {...register('homeLatitude')}
-          />
-          <Input
-            label="Longitud"
-            type="number"
-            step="any"
-            error={errors.homeLongitude?.message}
-            {...register('homeLongitude')}
-          />
-        </div>
+        <LocationPickerMap
+          location={homeLocation}
+          onChange={(location) => {
+            setValue('homeLatitude', location.latitude)
+            setValue('homeLongitude', location.longitude)
+          }}
+        />
       </div>
 
       <div className={styles.fieldGroup}>
@@ -112,27 +115,18 @@ export function PassengerForm({ guardianOptions, onRegistered }: PassengerFormPr
           error={errors.destinationAddressStreet?.message}
           {...register('destinationAddressStreet')}
         />
-        <div className={styles.coordinatesRow}>
-          <Input
-            label="Latitud"
-            type="number"
-            step="any"
-            error={errors.destinationLatitude?.message}
-            {...register('destinationLatitude')}
-          />
-          <Input
-            label="Longitud"
-            type="number"
-            step="any"
-            error={errors.destinationLongitude?.message}
-            {...register('destinationLongitude')}
-          />
-        </div>
+        <LocationPickerMap
+          location={destinationLocation}
+          onChange={(location) => {
+            setValue('destinationLatitude', location.latitude)
+            setValue('destinationLongitude', location.longitude)
+          }}
+        />
       </div>
 
       <Select
         label="Padre/Tutor"
-        options={guardianOptions}
+        options={[{ value: '', label: 'Seleccioná un tutor…' }, ...guardianOptions]}
         error={errors.guardianId?.message}
         {...register('guardianId')}
       />

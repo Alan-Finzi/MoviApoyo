@@ -88,19 +88,19 @@ export function TripForm({
 
       <Select
         label="Paciente"
-        options={passengerOptions}
+        options={[{ value: '', label: 'Seleccioná un paciente…' }, ...passengerOptions]}
         error={errors.passengerId?.message}
         {...register('passengerId')}
       />
       <Select
         label="Chofer"
-        options={driverOptions}
+        options={[{ value: '', label: 'Seleccioná un chofer…' }, ...driverOptions]}
         error={errors.driverId?.message}
         {...register('driverId')}
       />
       <Select
         label="Vehículo"
-        options={vehicleOptions}
+        options={[{ value: '', label: 'Seleccioná un vehículo…' }, ...vehicleOptions]}
         error={errors.vehicleId?.message}
         {...register('vehicleId')}
       />

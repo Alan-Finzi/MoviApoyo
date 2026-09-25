@@ -15,9 +15,3 @@
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-secondary);
 }
-
-.coordinatesRow {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-3);
-}
