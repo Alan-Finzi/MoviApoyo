@@ -72,6 +72,11 @@ const SCHOOL_ADDRESS = {
   coordinates: { latitude: -34.618, longitude: -58.39 },
 }
 
+const DAY_CENTER_ADDRESS = {
+  street: 'Centro de Día Los Álamos, Bv. San Juan 550',
+  coordinates: { latitude: -34.61, longitude: -58.41 },
+}
+
 const PASSENGER_SEED_TIMESTAMP = new Date('2026-01-15T12:00:00.000Z').toISOString()
 
 export const passengersSeed: Passenger[] = [
@@ -85,7 +90,6 @@ export const passengersSeed: Passenger[] = [
       street: 'Av. Rivadavia 1234',
       coordinates: { latitude: -34.605, longitude: -58.382 },
     },
-    destinationAddress: SCHOOL_ADDRESS,
     guardianId: 'guardian-1',
     status: PassengerStatus.ACTIVE,
     operationalNotes: 'Usa silla de ruedas plegable, se traslada en el asiento trasero.',
@@ -101,10 +105,6 @@ export const passengersSeed: Passenger[] = [
     homeAddress: {
       street: 'Calle Lavalle 900',
       coordinates: { latitude: -34.595, longitude: -58.4 },
-    },
-    destinationAddress: {
-      street: 'Centro de Día Los Álamos, Bv. San Juan 550',
-      coordinates: { latitude: -34.61, longitude: -58.41 },
     },
     guardianId: 'guardian-2',
     status: PassengerStatus.ACTIVE,
@@ -122,7 +122,6 @@ export const passengersSeed: Passenger[] = [
       street: 'Pasaje Los Andes 45',
       coordinates: { latitude: -34.63, longitude: -58.37 },
     },
-    destinationAddress: SCHOOL_ADDRESS,
     guardianId: 'guardian-3',
     status: PassengerStatus.ACTIVE,
     createdAt: PASSENGER_SEED_TIMESTAMP,
@@ -137,10 +136,6 @@ export const passengersSeed: Passenger[] = [
     homeAddress: {
       street: 'Calle Belgrano 210',
       coordinates: { latitude: -34.58, longitude: -58.395 },
-    },
-    destinationAddress: {
-      street: 'Centro de Día Los Álamos, Bv. San Juan 550',
-      coordinates: { latitude: -34.61, longitude: -58.41 },
     },
     guardianId: 'guardian-4',
     status: PassengerStatus.INACTIVE,
@@ -262,7 +257,7 @@ export const tripsSeed: Trip[] = [
     driverId: 'driver-1',
     vehicleId: 'vehicle-1',
     origin: passengersSeed[0]!.homeAddress,
-    destination: passengersSeed[0]!.destinationAddress,
+    destination: SCHOOL_ADDRESS,
     scheduledDeparture: todayAt(8, 0),
     estimatedArrival: todayAt(8, 40),
     status: TripStatus.ON_THE_WAY,
@@ -298,7 +293,7 @@ export const tripsSeed: Trip[] = [
     driverId: 'driver-2',
     vehicleId: 'vehicle-2',
     origin: passengersSeed[1]!.homeAddress,
-    destination: passengersSeed[1]!.destinationAddress,
+    destination: DAY_CENTER_ADDRESS,
     scheduledDeparture: todayAt(9, 15),
     estimatedArrival: todayAt(9, 50),
     status: TripStatus.SCHEDULED,
@@ -324,12 +319,12 @@ export const tripsSeed: Trip[] = [
     driverId: 'driver-1',
     vehicleId: 'vehicle-1',
     origin: passengersSeed[2]!.homeAddress,
-    destination: passengersSeed[2]!.destinationAddress,
+    destination: SCHOOL_ADDRESS,
     scheduledDeparture: todayAt(7, 0),
     estimatedArrival: todayAt(7, 35),
     status: TripStatus.COMPLETED,
     delayMinutes: 0,
-    currentLocation: passengersSeed[2]!.destinationAddress.coordinates,
+    currentLocation: SCHOOL_ADDRESS.coordinates,
     events: [
       {
         id: 'event-4',
@@ -361,7 +356,7 @@ export const tripsSeed: Trip[] = [
     driverId: 'driver-3',
     vehicleId: 'vehicle-3',
     origin: passengersSeed[3]!.homeAddress,
-    destination: passengersSeed[3]!.destinationAddress,
+    destination: DAY_CENTER_ADDRESS,
     scheduledDeparture: todayAt(8, 15),
     estimatedArrival: todayAt(8, 50),
     status: TripStatus.DELAYED,

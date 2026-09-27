@@ -15,8 +15,13 @@ export interface Passenger {
   readonly lastName: string
   readonly birthDate?: string
   readonly sex?: PassengerSex
+  // Domicilio: de acá sale siempre el traslado. El destino, en cambio, NO
+  // es un dato del paciente — se elige en cada traslado (ver
+  // RegisterTripUseCase/TripForm), porque un mismo paciente puede ir a
+  // lugares distintos según el día (escuela, kinesiología, un turno
+  // puntual). Para un destino habitual que se repite, ver
+  // PassengerDestination en vez de guardarlo acá.
   readonly homeAddress: Address
-  readonly destinationAddress: Address
   readonly guardianId: string
   readonly photoUrl?: string
   readonly status: PassengerStatus

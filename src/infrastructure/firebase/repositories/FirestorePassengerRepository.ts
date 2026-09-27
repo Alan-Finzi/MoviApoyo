@@ -31,7 +31,6 @@ interface PassengerDocument {
   readonly birthDate?: string
   readonly sex?: PassengerSex
   readonly homeAddress: Address
-  readonly destinationAddress: Address
   readonly guardianId: string
   readonly photoUrl?: string
   readonly status?: PassengerStatus
@@ -62,7 +61,6 @@ function fromFirestore(id: string, data: DocumentData): Passenger {
     birthDate: raw.birthDate,
     sex: raw.sex,
     homeAddress: raw.homeAddress,
-    destinationAddress: raw.destinationAddress,
     guardianId: raw.guardianId,
     photoUrl: raw.photoUrl,
     status: raw.status ?? PassengerStatus.ACTIVE,

@@ -255,9 +255,7 @@ export function TripDetailPage() {
             <span className={styles.infoCardDetail}>
               <MapPin size={13} aria-hidden="true" /> {passenger.homeAddress.street}
             </span>
-            <span className={styles.infoCardDetail}>
-              Destino: {passenger.destinationAddress.street}
-            </span>
+            <span className={styles.infoCardDetail}>Destino: {trip.destination.street}</span>
             <span className={styles.infoCardDetail}>
               Horario programado: {formatTime(trip.scheduledDeparture)}
             </span>

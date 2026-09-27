@@ -51,11 +51,6 @@ export function PassengersPage() {
     },
     { key: 'home', header: 'Domicilio', render: (passenger) => passenger.homeAddress.street },
     {
-      key: 'destination',
-      header: 'Destino',
-      render: (passenger) => passenger.destinationAddress.street,
-    },
-    {
       key: 'guardian',
       header: 'Padre/Tutor',
       render: (passenger) => guardianById.get(passenger.guardianId)?.fullName ?? '—',

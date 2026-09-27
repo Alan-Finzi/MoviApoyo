@@ -29,9 +29,6 @@ const passengerFormSchema = z.object({
   homeAddressStreet: z.string().min(1, 'Ingresá el domicilio.'),
   homeLatitude: z.number(),
   homeLongitude: z.number(),
-  destinationAddressStreet: z.string().min(1, 'Ingresá el destino.'),
-  destinationLatitude: z.number(),
-  destinationLongitude: z.number(),
   guardianId: z.string().min(1, 'Seleccioná un tutor.'),
   operationalNotes: z.string().max(300).optional(),
 })
@@ -45,8 +42,11 @@ interface PassengerFormProps {
 
 // Alta de paciente (rule: "agregar pacientes"). El tutor se elige entre los
 // que ya existen — el alta de tutores nuevos queda fuera de este alcance.
-// El domicilio/destino se marcan tocando un mapa real (LocationPickerMap,
-// OpenStreetMap) en vez de tipear latitud/longitud a mano.
+// El domicilio se marca tocando un mapa real (LocationPickerMap,
+// OpenStreetMap) en vez de tipear latitud/longitud a mano. No se pide un
+// destino acá: el paciente puede ir a lugares distintos según el viaje, así
+// que el destino se elige al crear cada traslado (ver TripForm), no queda
+// fijo en la ficha del paciente.
 export function PassengerForm({ guardianOptions, onRegistered }: PassengerFormProps) {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const {
@@ -66,19 +66,12 @@ export function PassengerForm({ guardianOptions, onRegistered }: PassengerFormPr
       homeAddressStreet: '',
       homeLatitude: DEFAULT_MAP_CENTER.latitude,
       homeLongitude: DEFAULT_MAP_CENTER.longitude,
-      destinationAddressStreet: '',
-      destinationLatitude: DEFAULT_MAP_CENTER.latitude,
-      destinationLongitude: DEFAULT_MAP_CENTER.longitude,
       guardianId: '',
       operationalNotes: '',
     },
   })
 
   const homeLocation = { latitude: watch('homeLatitude'), longitude: watch('homeLongitude') }
-  const destinationLocation = {
-    latitude: watch('destinationLatitude'),
-    longitude: watch('destinationLongitude'),
-  }
 
   async function onSubmit(values: PassengerFormValues): Promise<void> {
     setSubmitError(null)
@@ -131,22 +124,6 @@ export function PassengerForm({ guardianOptions, onRegistered }: PassengerFormPr
           onChange={(location) => {
             setValue('homeLatitude', location.latitude)
             setValue('homeLongitude', location.longitude)
-          }}
-        />
-      </div>
-
-      <div className={styles.fieldGroup}>
-        <span className={styles.groupTitle}>Destino</span>
-        <Input
-          label="Dirección"
-          error={errors.destinationAddressStreet?.message}
-          {...register('destinationAddressStreet')}
-        />
-        <LocationPickerMap
-          location={destinationLocation}
-          onChange={(location) => {
-            setValue('destinationLatitude', location.latitude)
-            setValue('destinationLongitude', location.longitude)
           }}
         />
       </div>

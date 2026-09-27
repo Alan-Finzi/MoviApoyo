@@ -155,8 +155,9 @@ function DestinationsTab({ passengerId }: { readonly passengerId: string }) {
     <div>
       <div className={styles.destinationsHeader}>
         <p className={styles.infoLabel}>
-          Además del domicilio y destino principal, un paciente puede tener otros destinos
-          habituales (ej. kinesiología, un turno médico puntual) con su propio horario.
+          El destino de cada viaje se elige al crear el traslado. Si el paciente va seguido al
+          mismo lugar (ej. kinesiología, un turno médico) podés cargarlo acá como destino
+          habitual, con su propio horario, para generar esos viajes automáticamente.
         </p>
         <Button onClick={() => setIsModalOpen(true)}>Nuevo destino</Button>
       </div>
@@ -321,10 +322,6 @@ export function PassengerDetailPage() {
         <div className={styles.infoRow}>
           <span className={styles.infoLabel}>Domicilio</span>
           <span>{data.homeAddress.street}</span>
-        </div>
-        <div className={styles.infoRow}>
-          <span className={styles.infoLabel}>Destino</span>
-          <span>{data.destinationAddress.street}</span>
         </div>
         <div className={styles.infoRow}>
           <span className={styles.infoLabel}>Padre/Tutor</span>

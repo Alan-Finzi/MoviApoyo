@@ -8,7 +8,9 @@ import type { AssignmentConflict } from '@/domain/services/AssignmentConflictChe
 import { Alert } from '@/presentation/components/Alert'
 import { Button } from '@/presentation/components/Button'
 import { Input } from '@/presentation/components/Input'
+import { LocationPickerMap } from '@/presentation/components/LocationPickerMap'
 import { Select, type SelectOption } from '@/presentation/components/Select'
+import { DEFAULT_MAP_CENTER } from '@/shared/constants/app.constants'
 import { toAppError } from '@/shared/errors/AppError'
 
 import styles from './TripForm.module.css'
@@ -18,6 +20,9 @@ const tripFormSchema = z
     passengerId: z.string().min(1, 'Seleccioná un paciente.'),
     driverId: z.string().min(1, 'Seleccioná un chofer.'),
     vehicleId: z.string().min(1, 'Seleccioná un vehículo.'),
+    destinationAddressStreet: z.string().min(1, 'Ingresá el destino.'),
+    destinationLatitude: z.number(),
+    destinationLongitude: z.number(),
     scheduledDeparture: z.string().min(1, 'Ingresá la fecha y hora de salida.'),
     estimatedArrival: z.string().min(1, 'Ingresá la fecha y hora de llegada estimada.'),
   })
@@ -36,10 +41,12 @@ interface TripFormProps {
   readonly onRegistered: () => void
 }
 
-// Alta de traslado (rule: "agregar traslados"). El origen/destino se copian
-// del paciente elegido (ver RegisterTripUseCase) — acá no se piden a mano.
-// Arranca siempre PROGRAMADO; el resto del ciclo de vida lo actualiza el
-// chofer por WhatsApp.
+// Alta de traslado (rule: "agregar traslados"). El origen se copia del
+// domicilio del paciente elegido (ver RegisterTripUseCase) — el destino, en
+// cambio, se elige acá cada vez: un paciente puede ir a lugares distintos
+// según el viaje, así que no tiene un destino fijo (ver Passenger). Arranca
+// siempre PROGRAMADO; el resto del ciclo de vida lo actualiza el chofer por
+// WhatsApp.
 export function TripForm({
   passengerOptions,
   driverOptions,
@@ -54,6 +61,7 @@ export function TripForm({
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors, isSubmitting },
     reset,
   } = useForm<TripFormValues>({
@@ -62,10 +70,18 @@ export function TripForm({
       passengerId: '',
       driverId: '',
       vehicleId: '',
+      destinationAddressStreet: '',
+      destinationLatitude: DEFAULT_MAP_CENTER.latitude,
+      destinationLongitude: DEFAULT_MAP_CENTER.longitude,
       scheduledDeparture: '',
       estimatedArrival: '',
     },
   })
+
+  const destinationLocation = {
+    latitude: watch('destinationLatitude'),
+    longitude: watch('destinationLongitude'),
+  }
 
   // Si el coordinador cambia chofer/vehículo/horario después de ver una
   // advertencia de conflicto, esa advertencia queda obsoleta — se descarta
@@ -84,6 +100,9 @@ export function TripForm({
       passengerId: values.passengerId,
       driverId: values.driverId,
       vehicleId: values.vehicleId,
+      destinationAddressStreet: values.destinationAddressStreet,
+      destinationLatitude: values.destinationLatitude,
+      destinationLongitude: values.destinationLongitude,
       scheduledDeparture: new Date(values.scheduledDeparture).toISOString(),
       estimatedArrival: new Date(values.estimatedArrival).toISOString(),
       registeredBy,
@@ -155,6 +174,23 @@ export function TripForm({
         error={errors.vehicleId?.message}
         {...register('vehicleId')}
       />
+
+      <div className={styles.fieldGroup}>
+        <span className={styles.groupTitle}>Destino</span>
+        <Input
+          label="Dirección"
+          error={errors.destinationAddressStreet?.message}
+          {...register('destinationAddressStreet')}
+        />
+        <LocationPickerMap
+          location={destinationLocation}
+          onChange={(location) => {
+            setValue('destinationLatitude', location.latitude)
+            setValue('destinationLongitude', location.longitude)
+          }}
+        />
+      </div>
+
       <Input
         label="Salida programada"
         type="datetime-local"

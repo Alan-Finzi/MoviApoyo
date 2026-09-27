@@ -11,9 +11,6 @@ export interface RegisterPassengerInput {
   readonly homeAddressStreet: string
   readonly homeLatitude: number
   readonly homeLongitude: number
-  readonly destinationAddressStreet: string
-  readonly destinationLatitude: number
-  readonly destinationLongitude: number
   readonly guardianId: string
   readonly operationalNotes?: string
 }
@@ -34,10 +31,6 @@ export class RegisterPassengerUseCase {
       homeAddress: {
         street: input.homeAddressStreet,
         coordinates: { latitude: input.homeLatitude, longitude: input.homeLongitude },
-      },
-      destinationAddress: {
-        street: input.destinationAddressStreet,
-        coordinates: { latitude: input.destinationLatitude, longitude: input.destinationLongitude },
       },
       guardianId: input.guardianId,
       status: PassengerStatus.ACTIVE,

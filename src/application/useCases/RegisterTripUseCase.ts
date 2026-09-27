@@ -8,6 +8,9 @@ export interface RegisterTripInput {
   readonly passengerId: string
   readonly driverId: string
   readonly vehicleId: string
+  readonly destinationAddressStreet: string
+  readonly destinationLatitude: number
+  readonly destinationLongitude: number
   readonly scheduledDeparture: string
   readonly estimatedArrival: string
   readonly registeredBy: string
@@ -17,12 +20,14 @@ export interface RegisterTripInput {
   readonly overriddenConflicts?: readonly string[]
 }
 
-// Alta de traslado desde el panel de admin. El origen/destino se copian del
-// domicilio/destino del paciente en este momento (ver comentario en la
-// entidad Trip: un traslado ya finalizado tiene que conservar la dirección
-// real usada, aunque el paciente cambie de domicilio después). Arranca
-// siempre en PROGRAMADO — el resto del ciclo de vida lo maneja el chofer por
-// WhatsApp (ver docs/whatsapp-bot.md), no se elige a mano acá.
+// Alta de traslado desde el panel de admin. El origen se copia del
+// domicilio del paciente (ver comentario en la entidad Trip: un traslado ya
+// finalizado tiene que conservar la dirección real usada, aunque el
+// paciente cambie de domicilio después); el destino, en cambio, lo elige el
+// coordinador acá mismo — un paciente puede ir a lugares distintos según el
+// viaje (ver TripForm/Passenger). Arranca siempre en PROGRAMADO — el resto
+// del ciclo de vida lo maneja el chofer por WhatsApp (ver
+// docs/whatsapp-bot.md), no se elige a mano acá.
 export class RegisterTripUseCase {
   constructor(
     private readonly tripRepository: TripRepository,
@@ -37,7 +42,10 @@ export class RegisterTripUseCase {
       driverId: input.driverId,
       vehicleId: input.vehicleId,
       origin: passenger.homeAddress,
-      destination: passenger.destinationAddress,
+      destination: {
+        street: input.destinationAddressStreet,
+        coordinates: { latitude: input.destinationLatitude, longitude: input.destinationLongitude },
+      },
       scheduledDeparture: input.scheduledDeparture,
       estimatedArrival: input.estimatedArrival,
       status: TripStatus.SCHEDULED,

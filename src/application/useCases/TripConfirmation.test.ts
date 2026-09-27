@@ -43,7 +43,6 @@ const passenger: Passenger = {
   firstName: 'Juan',
   lastName: 'Pérez',
   homeAddress: { street: 'Calle 1', coordinates: { latitude: 0, longitude: 0 } },
-  destinationAddress: { street: 'Calle 2', coordinates: { latitude: 1, longitude: 1 } },
   guardianId: 'guardian-1',
   status: PassengerStatus.ACTIVE,
   createdAt: new Date().toISOString(),
