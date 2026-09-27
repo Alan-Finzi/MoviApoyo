@@ -14,4 +14,10 @@ export class MockGuardianRepository implements GuardianRepository {
     if (!guardian) throw new NotFoundError(`No existe el tutor con id "${id}".`)
     return Promise.resolve(guardian)
   }
+
+  registerGuardian(guardian: Omit<Guardian, 'id'>): Promise<Guardian> {
+    const newGuardian: Guardian = { ...guardian, id: `guardian-${crypto.randomUUID()}` }
+    guardiansStore.setState((guardians) => [...guardians, newGuardian])
+    return Promise.resolve(newGuardian)
+  }
 }

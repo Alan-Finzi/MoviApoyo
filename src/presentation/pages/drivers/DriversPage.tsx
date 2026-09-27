@@ -16,6 +16,8 @@ import { useTrips } from '@/presentation/hooks/useTrips'
 import { useVehicles } from '@/presentation/hooks/useVehicles'
 import { buildDriverDetailRoute } from '@/shared/constants/routes.constants'
 import { DRIVER_STATUS_LABELS, DRIVER_STATUS_TONE } from '@/shared/constants/vehicle.constants'
+import { classNames } from '@/shared/utils/classNames'
+import { formatIsoDate, isPastDate } from '@/shared/utils/date'
 import { formatPhone } from '@/shared/utils/formatPhone'
 import { formatVehiclePlate } from '@/shared/utils/formatVehiclePlate'
 
@@ -87,6 +89,18 @@ export function DriversPage() {
       key: 'tripsToday',
       header: 'Viajes hoy',
       render: (driver) => (tripsTodayByDriverId.get(driver.id) ?? 0).toString(),
+    },
+    {
+      key: 'license',
+      header: 'Carnet',
+      render: (driver) =>
+        driver.licenseExpiresAt ? (
+          <span className={classNames(isPastDate(driver.licenseExpiresAt) && styles.danger)}>
+            {formatIsoDate(driver.licenseExpiresAt)}
+          </span>
+        ) : (
+          '—'
+        ),
     },
   ]
 

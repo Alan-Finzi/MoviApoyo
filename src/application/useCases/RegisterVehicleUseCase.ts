@@ -9,6 +9,8 @@ export interface RegisterVehicleInput {
   readonly model: string
   readonly year: number
   readonly assignedDriverId?: string | null
+  readonly insuranceExpiresAt: string
+  readonly vtvExpiresAt: string
   readonly notes?: string
 }
 
@@ -28,6 +30,8 @@ export class RegisterVehicleUseCase {
       assignedDriverId: input.assignedDriverId ?? null,
       fuelLevelPercentage: 100,
       odometerKm: 0,
+      insuranceExpiresAt: input.insuranceExpiresAt,
+      vtvExpiresAt: input.vtvExpiresAt,
       notes: input.notes,
     })
   }

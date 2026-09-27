@@ -61,6 +61,8 @@ function buildVehicle(overrides: Partial<Vehicle> = {}): Vehicle {
     assignedDriverId: null,
     fuelLevelPercentage: 80,
     odometerKm: 1000,
+    insuranceExpiresAt: null,
+    vtvExpiresAt: null,
     ...overrides,
   }
 }

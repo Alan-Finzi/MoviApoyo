@@ -183,6 +183,7 @@ export const driversSeed: Driver[] = [
     phone: createPhoneNumber('+5493511112233'),
     assignedVehicleId: 'vehicle-1',
     status: DriverStatus.ON_TRIP,
+    licenseExpiresAt: '2027-04-30',
   },
   {
     id: 'driver-2',
@@ -191,6 +192,7 @@ export const driversSeed: Driver[] = [
     phone: createPhoneNumber('+5493514445566'),
     assignedVehicleId: 'vehicle-2',
     status: DriverStatus.AVAILABLE,
+    licenseExpiresAt: '2026-11-15',
   },
   {
     id: 'driver-3',
@@ -199,6 +201,7 @@ export const driversSeed: Driver[] = [
     phone: createPhoneNumber('+5493517778899'),
     assignedVehicleId: 'vehicle-3',
     status: DriverStatus.AVAILABLE,
+    licenseExpiresAt: '2026-10-01',
   },
 ]
 
@@ -213,6 +216,8 @@ export const vehiclesSeed: Vehicle[] = [
     assignedDriverId: 'driver-1',
     fuelLevelPercentage: 68,
     odometerKm: 82_450,
+    insuranceExpiresAt: '2027-02-28',
+    vtvExpiresAt: '2026-12-10',
   },
   {
     id: 'vehicle-2',
@@ -224,6 +229,8 @@ export const vehiclesSeed: Vehicle[] = [
     assignedDriverId: 'driver-2',
     fuelLevelPercentage: 91,
     odometerKm: 41_200,
+    insuranceExpiresAt: '2027-06-30',
+    vtvExpiresAt: '2027-01-20',
   },
   {
     id: 'vehicle-3',
@@ -235,6 +242,8 @@ export const vehiclesSeed: Vehicle[] = [
     assignedDriverId: 'driver-3',
     fuelLevelPercentage: 54,
     odometerKm: 103_780,
+    insuranceExpiresAt: '2026-10-31',
+    vtvExpiresAt: '2026-11-05',
   },
   {
     id: 'vehicle-4',
@@ -246,6 +255,8 @@ export const vehiclesSeed: Vehicle[] = [
     assignedDriverId: null,
     fuelLevelPercentage: 12,
     odometerKm: 156_300,
+    insuranceExpiresAt: '2026-09-30',
+    vtvExpiresAt: '2026-08-15',
     notes: 'En taller por revisión de frenos, vuelve a estar disponible el viernes.',
   },
 ]

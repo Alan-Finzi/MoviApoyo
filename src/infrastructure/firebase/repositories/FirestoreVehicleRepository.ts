@@ -28,6 +28,8 @@ interface VehicleDocument {
   readonly assignedDriverId: string | null
   readonly fuelLevelPercentage: number
   readonly odometerKm: number
+  readonly insuranceExpiresAt: string | null
+  readonly vtvExpiresAt: string | null
   readonly notes?: string
 }
 
@@ -43,6 +45,8 @@ function fromFirestore(id: string, data: DocumentData): Vehicle {
     assignedDriverId: raw.assignedDriverId ?? null,
     fuelLevelPercentage: raw.fuelLevelPercentage,
     odometerKm: raw.odometerKm,
+    insuranceExpiresAt: raw.insuranceExpiresAt ?? null,
+    vtvExpiresAt: raw.vtvExpiresAt ?? null,
     notes: raw.notes,
   }
 }

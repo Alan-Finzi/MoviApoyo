@@ -9,6 +9,7 @@ import {
   Truck,
   UserRound,
   Users,
+  UsersRound,
 } from 'lucide-react'
 
 import { useAuth } from '@/app/providers/AuthProvider'
@@ -50,6 +51,12 @@ const NAV_ITEMS: readonly NavItem[] = [
     to: ROUTES.PASSENGERS,
     label: 'Pacientes',
     icon: <Users size={18} aria-hidden="true" />,
+    roles: OPERATIONS_ROLES,
+  },
+  {
+    to: ROUTES.GUARDIANS,
+    label: 'Tutores',
+    icon: <UsersRound size={18} aria-hidden="true" />,
     roles: OPERATIONS_ROLES,
   },
   {

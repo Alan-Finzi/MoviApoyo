@@ -16,7 +16,7 @@ import {
   VEHICLE_STATUS_LABELS,
   VEHICLE_STATUS_TONE,
 } from '@/shared/constants/vehicle.constants'
-import { formatTime } from '@/shared/utils/date'
+import { formatIsoDate, formatTime, isPastDate } from '@/shared/utils/date'
 import { formatVehiclePlate } from '@/shared/utils/formatVehiclePlate'
 
 import styles from './VehicleDetailPage.module.css'
@@ -104,6 +104,18 @@ export function VehicleDetailPage() {
         <div className={styles.infoRow}>
           <span className={styles.infoLabel}>Kilometraje</span>
           <span>{data.odometerKm.toLocaleString('es-AR')} km</span>
+        </div>
+        <div className={styles.infoRow}>
+          <span className={styles.infoLabel}>Vencimiento del seguro</span>
+          <span>{data.insuranceExpiresAt ? formatIsoDate(data.insuranceExpiresAt) : '—'}</span>
+          {data.insuranceExpiresAt && isPastDate(data.insuranceExpiresAt) && (
+            <Badge tone="danger">Vencido</Badge>
+          )}
+        </div>
+        <div className={styles.infoRow}>
+          <span className={styles.infoLabel}>Vencimiento de la VTV</span>
+          <span>{data.vtvExpiresAt ? formatIsoDate(data.vtvExpiresAt) : '—'}</span>
+          {data.vtvExpiresAt && isPastDate(data.vtvExpiresAt) && <Badge tone="danger">Vencido</Badge>}
         </div>
         {data.notes && (
           <div className={styles.infoRow}>

@@ -20,6 +20,7 @@ function buildDriver(overrides: Partial<Driver> = {}): Driver {
     phone: createPhoneNumber('+5493511234567'),
     assignedVehicleId: 'vehicle-1',
     status: DriverStatus.AVAILABLE,
+    licenseExpiresAt: null,
     ...overrides,
   }
 }
@@ -35,6 +36,8 @@ function buildVehicle(overrides: Partial<Vehicle> = {}): Vehicle {
     assignedDriverId: 'driver-1',
     fuelLevelPercentage: 80,
     odometerKm: 10000,
+    insuranceExpiresAt: null,
+    vtvExpiresAt: null,
     ...overrides,
   }
 }

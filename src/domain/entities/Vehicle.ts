@@ -11,5 +11,9 @@ export interface Vehicle {
   readonly assignedDriverId: string | null
   readonly fuelLevelPercentage: number
   readonly odometerKm: number
+  // "yyyy-mm-dd". null si todavía no se cargó (ej. vehículos viejos que se
+  // migraron sin este dato).
+  readonly insuranceExpiresAt: string | null
+  readonly vtvExpiresAt: string | null
   readonly notes?: string
 }

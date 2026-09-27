@@ -14,6 +14,7 @@ export const ROUTES = {
   // llamándose Passenger — esto es solo la ruta/etiqueta visible.
   PASSENGERS: '/pacientes',
   PASSENGER_DETAIL: '/pacientes/:id',
+  GUARDIANS: '/tutores',
   NOTIFICATIONS: '/notificaciones',
   INCIDENTS: '/incidentes',
   SETTINGS: '/configuracion',

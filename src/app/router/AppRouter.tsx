@@ -5,6 +5,7 @@ import { AppLayout } from '@/presentation/layouts/AppLayout'
 import { DashboardPage } from '@/presentation/pages/dashboard/DashboardPage'
 import { DriverDetailPage } from '@/presentation/pages/drivers/DriverDetailPage'
 import { DriversPage } from '@/presentation/pages/drivers/DriversPage'
+import { GuardiansPage } from '@/presentation/pages/guardians/GuardiansPage'
 import { IncidentsPage } from '@/presentation/pages/incidents/IncidentsPage'
 import { NotificationsPage } from '@/presentation/pages/notifications/NotificationsPage'
 import { PassengerDetailPage } from '@/presentation/pages/passengers/PassengerDetailPage'
@@ -75,6 +76,14 @@ export function AppRouter() {
             element={
               <RoleGuard allowedRoles={OPERATIONS_ROLES}>
                 <PassengerDetailPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path={ROUTES.GUARDIANS}
+            element={
+              <RoleGuard allowedRoles={OPERATIONS_ROLES}>
+                <GuardiansPage />
               </RoleGuard>
             }
           />

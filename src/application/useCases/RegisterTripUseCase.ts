@@ -8,9 +8,16 @@ export interface RegisterTripInput {
   readonly passengerId: string
   readonly driverId: string
   readonly vehicleId: string
-  readonly destinationAddressStreet: string
-  readonly destinationLatitude: number
-  readonly destinationLongitude: number
+  // true: se copia el domicilio del paciente. false: usa las tres
+  // direcciones de abajo (rule pedida: "si es del domicilio o otro").
+  readonly originIsHome: boolean
+  readonly originAddressStreet?: string
+  readonly originLatitude?: number
+  readonly originLongitude?: number
+  readonly destinationIsHome: boolean
+  readonly destinationAddressStreet?: string
+  readonly destinationLatitude?: number
+  readonly destinationLongitude?: number
   readonly scheduledDeparture: string
   readonly estimatedArrival: string
   readonly registeredBy: string
@@ -20,14 +27,13 @@ export interface RegisterTripInput {
   readonly overriddenConflicts?: readonly string[]
 }
 
-// Alta de traslado desde el panel de admin. El origen se copia del
-// domicilio del paciente (ver comentario en la entidad Trip: un traslado ya
-// finalizado tiene que conservar la dirección real usada, aunque el
-// paciente cambie de domicilio después); el destino, en cambio, lo elige el
-// coordinador acá mismo — un paciente puede ir a lugares distintos según el
-// viaje (ver TripForm/Passenger). Arranca siempre en PROGRAMADO — el resto
-// del ciclo de vida lo maneja el chofer por WhatsApp (ver
-// docs/whatsapp-bot.md), no se elige a mano acá.
+// Alta de traslado desde el panel de admin. El origen y el destino se
+// eligen acá cada vez, cada uno como "domicilio del paciente" u "otra
+// dirección" (rule pedida) — un paciente puede necesitar que lo pasen a
+// buscar o lo dejen en un lugar distinto al domicilio según el viaje (ver
+// TripForm/Passenger). Arranca siempre en PROGRAMADO — el resto del ciclo de
+// vida lo maneja el chofer por WhatsApp (ver docs/whatsapp-bot.md), no se
+// elige a mano acá.
 export class RegisterTripUseCase {
   constructor(
     private readonly tripRepository: TripRepository,
@@ -37,15 +43,28 @@ export class RegisterTripUseCase {
   async execute(input: RegisterTripInput): Promise<Trip> {
     const passenger = await this.passengerRepository.getPassengerById(input.passengerId)
 
+    const origin = input.originIsHome
+      ? passenger.homeAddress
+      : {
+          street: input.originAddressStreet ?? '',
+          coordinates: { latitude: input.originLatitude ?? 0, longitude: input.originLongitude ?? 0 },
+        }
+    const destination = input.destinationIsHome
+      ? passenger.homeAddress
+      : {
+          street: input.destinationAddressStreet ?? '',
+          coordinates: {
+            latitude: input.destinationLatitude ?? 0,
+            longitude: input.destinationLongitude ?? 0,
+          },
+        }
+
     const trip = await this.tripRepository.registerTrip({
       passengerId: input.passengerId,
       driverId: input.driverId,
       vehicleId: input.vehicleId,
-      origin: passenger.homeAddress,
-      destination: {
-        street: input.destinationAddressStreet,
-        coordinates: { latitude: input.destinationLatitude, longitude: input.destinationLongitude },
-      },
+      origin,
+      destination,
       scheduledDeparture: input.scheduledDeparture,
       estimatedArrival: input.estimatedArrival,
       status: TripStatus.SCHEDULED,

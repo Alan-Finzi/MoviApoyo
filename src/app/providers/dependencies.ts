@@ -28,6 +28,7 @@ import { GetVehicleByIdUseCase } from '@/application/useCases/GetVehicleByIdUseC
 import { GetVehicleLocationUseCase } from '@/application/useCases/GetVehicleLocationUseCase'
 import { GetVehiclesUseCase } from '@/application/useCases/GetVehiclesUseCase'
 import { RegisterDriverUseCase } from '@/application/useCases/RegisterDriverUseCase'
+import { RegisterGuardianUseCase } from '@/application/useCases/RegisterGuardianUseCase'
 import { RegisterIncidentUseCase } from '@/application/useCases/RegisterIncidentUseCase'
 import { RegisterPassengerDestinationUseCase } from '@/application/useCases/RegisterPassengerDestinationUseCase'
 import { RegisterPassengerUseCase } from '@/application/useCases/RegisterPassengerUseCase'
@@ -235,6 +236,7 @@ export const useCases = {
     checkAssignmentConflictsUseCase,
   ),
   getGuardians: new GetGuardiansUseCase(guardianRepository),
+  registerGuardian: new RegisterGuardianUseCase(guardianRepository),
   getPassengerSensitiveInfo: new GetPassengerSensitiveInfoUseCase(passengerRepository),
   updatePassengerSensitiveInfo: new UpdatePassengerSensitiveInfoUseCase(passengerRepository),
   getIncidents: new GetIncidentsUseCase(incidentRepository),

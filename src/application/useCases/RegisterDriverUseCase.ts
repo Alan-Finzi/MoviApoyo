@@ -8,6 +8,7 @@ export interface RegisterDriverInput {
   readonly lastName: string
   readonly phone: string
   readonly assignedVehicleId?: string | null
+  readonly licenseExpiresAt: string
 }
 
 // Alta de chofer desde el panel de admin. Arranca siempre en DISPONIBLE — el
@@ -23,6 +24,7 @@ export class RegisterDriverUseCase {
       phone: createPhoneNumber(input.phone),
       assignedVehicleId: input.assignedVehicleId ?? null,
       status: DriverStatus.AVAILABLE,
+      licenseExpiresAt: input.licenseExpiresAt,
     })
   }
 }

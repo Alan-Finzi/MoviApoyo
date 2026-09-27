@@ -8,6 +8,8 @@ export interface Driver {
   readonly phone: PhoneNumber
   readonly assignedVehicleId: string | null
   readonly status: DriverStatus
+  // "yyyy-mm-dd". null si todavía no se cargó.
+  readonly licenseExpiresAt: string | null
   readonly photoUrl?: string
 }
 

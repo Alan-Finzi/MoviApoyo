@@ -19,6 +19,7 @@ import {
   VEHICLE_STATUS_LABELS,
   VEHICLE_STATUS_TONE,
 } from '@/shared/constants/vehicle.constants'
+import { formatIsoDate, isPastDate } from '@/shared/utils/date'
 import { formatVehiclePlate } from '@/shared/utils/formatVehiclePlate'
 
 import { VehicleForm } from './VehicleForm'
@@ -80,7 +81,7 @@ export function VehiclesPage() {
       render: (vehicle) => (
         <span
           className={classNames(
-            vehicle.fuelLevelPercentage <= LOW_FUEL_THRESHOLD_PERCENTAGE && styles.lowFuel,
+            vehicle.fuelLevelPercentage <= LOW_FUEL_THRESHOLD_PERCENTAGE && styles.danger,
           )}
         >
           {vehicle.fuelLevelPercentage}%
@@ -91,6 +92,30 @@ export function VehiclesPage() {
       key: 'odometer',
       header: 'Kilometraje',
       render: (vehicle) => `${vehicle.odometerKm.toLocaleString('es-AR')} km`,
+    },
+    {
+      key: 'insurance',
+      header: 'Seguro',
+      render: (vehicle) =>
+        vehicle.insuranceExpiresAt ? (
+          <span className={classNames(isPastDate(vehicle.insuranceExpiresAt) && styles.danger)}>
+            {formatIsoDate(vehicle.insuranceExpiresAt)}
+          </span>
+        ) : (
+          '—'
+        ),
+    },
+    {
+      key: 'vtv',
+      header: 'VTV',
+      render: (vehicle) =>
+        vehicle.vtvExpiresAt ? (
+          <span className={classNames(isPastDate(vehicle.vtvExpiresAt) && styles.danger)}>
+            {formatIsoDate(vehicle.vtvExpiresAt)}
+          </span>
+        ) : (
+          '—'
+        ),
     },
   ]
 

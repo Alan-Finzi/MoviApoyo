@@ -1,4 +1,5 @@
 import {
+  addDoc,
   collection,
   doc,
   getDoc,
@@ -14,6 +15,7 @@ import { createPhoneNumber } from '@/domain/valueObjects/PhoneNumber'
 import { NotFoundError } from '@/shared/errors/AppError'
 
 import { asDocumentShape } from '../firestoreData'
+import { stripUndefined } from '../stripUndefined'
 
 const COLLECTION = 'guardians'
 
@@ -47,5 +49,10 @@ export class FirestoreGuardianRepository implements GuardianRepository {
     const docSnap = await getDoc(doc(this.firestore, COLLECTION, id))
     if (!docSnap.exists()) throw new NotFoundError(`No existe el tutor con id "${id}".`)
     return fromFirestore(docSnap.id, docSnap.data())
+  }
+
+  async registerGuardian(guardian: Omit<Guardian, 'id'>): Promise<Guardian> {
+    const docRef = await addDoc(collection(this.firestore, COLLECTION), stripUndefined(guardian))
+    return { ...guardian, id: docRef.id }
   }
 }

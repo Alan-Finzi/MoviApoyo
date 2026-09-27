@@ -25,6 +25,8 @@ const vehicleFormSchema = z.object({
     .min(1980, 'Ingresá un año válido.')
     .max(CURRENT_YEAR + 1, 'Ingresá un año válido.'),
   assignedDriverId: z.string(),
+  insuranceExpiresAt: z.string().min(1, 'Ingresá el vencimiento del seguro.'),
+  vtvExpiresAt: z.string().min(1, 'Ingresá el vencimiento de la VTV.'),
   notes: z.string().optional(),
 })
 
@@ -56,6 +58,8 @@ export function VehicleForm({ driverOptions, onRegistered }: VehicleFormProps) {
       model: '',
       year: CURRENT_YEAR,
       assignedDriverId: NO_DRIVER_VALUE,
+      insuranceExpiresAt: '',
+      vtvExpiresAt: '',
       notes: '',
     },
   })
@@ -69,6 +73,8 @@ export function VehicleForm({ driverOptions, onRegistered }: VehicleFormProps) {
         model: values.model,
         year: values.year,
         assignedDriverId: values.assignedDriverId || null,
+        insuranceExpiresAt: values.insuranceExpiresAt,
+        vtvExpiresAt: values.vtvExpiresAt,
         notes: values.notes,
       })
       reset()
@@ -107,6 +113,18 @@ export function VehicleForm({ driverOptions, onRegistered }: VehicleFormProps) {
         options={[{ value: NO_DRIVER_VALUE, label: 'Sin asignar' }, ...driverOptions]}
         error={errors.assignedDriverId?.message}
         {...register('assignedDriverId')}
+      />
+      <Input
+        label="Vencimiento del seguro"
+        type="date"
+        error={errors.insuranceExpiresAt?.message}
+        {...register('insuranceExpiresAt')}
+      />
+      <Input
+        label="Vencimiento de la VTV"
+        type="date"
+        error={errors.vtvExpiresAt?.message}
+        {...register('vtvExpiresAt')}
       />
       <Input label="Notas (opcional)" error={errors.notes?.message} {...register('notes')} />
 

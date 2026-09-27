@@ -22,3 +22,8 @@
 .driverCell:hover {
   text-decoration: underline;
 }
+
+.danger {
+  color: var(--color-danger-fg);
+  font-weight: var(--font-weight-semibold);
+}

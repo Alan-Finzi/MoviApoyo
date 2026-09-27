@@ -15,7 +15,7 @@ import { useTripsByDriver } from '@/presentation/hooks/useTripsByDriver'
 import { useVehicle } from '@/presentation/hooks/useVehicle'
 import { DRIVER_STATUS_LABELS, DRIVER_STATUS_TONE } from '@/shared/constants/vehicle.constants'
 import { formatPhone } from '@/shared/utils/formatPhone'
-import { formatTime } from '@/shared/utils/date'
+import { formatIsoDate, formatTime, isPastDate } from '@/shared/utils/date'
 import { formatVehiclePlate } from '@/shared/utils/formatVehiclePlate'
 
 import styles from './DriverDetailPage.module.css'
@@ -95,6 +95,13 @@ export function DriverDetailPage() {
         <div className={styles.infoRow}>
           <span className={styles.infoLabel}>Estado</span>
           <Badge tone={DRIVER_STATUS_TONE[data.status]}>{DRIVER_STATUS_LABELS[data.status]}</Badge>
+        </div>
+        <div className={styles.infoRow}>
+          <span className={styles.infoLabel}>Vencimiento del carnet</span>
+          <span>{data.licenseExpiresAt ? formatIsoDate(data.licenseExpiresAt) : '—'}</span>
+          {data.licenseExpiresAt && isPastDate(data.licenseExpiresAt) && (
+            <Badge tone="danger">Vencido</Badge>
+          )}
         </div>
         {data.assignedVehicleId && <AssignedVehicle vehicleId={data.assignedVehicleId} />}
       </Card>

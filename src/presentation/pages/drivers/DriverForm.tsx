@@ -19,6 +19,7 @@ const driverFormSchema = z.object({
   lastName: z.string().min(1, 'Ingresá el apellido.'),
   phone: z.string().min(1, 'Ingresá el teléfono.'),
   assignedVehicleId: z.string(),
+  licenseExpiresAt: z.string().min(1, 'Ingresá el vencimiento del carnet de conducir.'),
 })
 
 type DriverFormValues = z.infer<typeof driverFormSchema>
@@ -44,6 +45,7 @@ export function DriverForm({ vehicleOptions, onRegistered }: DriverFormProps) {
       lastName: '',
       phone: '',
       assignedVehicleId: NO_VEHICLE_VALUE,
+      licenseExpiresAt: '',
     },
   })
 
@@ -55,6 +57,7 @@ export function DriverForm({ vehicleOptions, onRegistered }: DriverFormProps) {
         lastName: values.lastName,
         phone: values.phone,
         assignedVehicleId: values.assignedVehicleId || null,
+        licenseExpiresAt: values.licenseExpiresAt,
       })
       reset()
       onRegistered()
@@ -85,6 +88,12 @@ export function DriverForm({ vehicleOptions, onRegistered }: DriverFormProps) {
         options={[{ value: NO_VEHICLE_VALUE, label: 'Sin asignar' }, ...vehicleOptions]}
         error={errors.assignedVehicleId?.message}
         {...register('assignedVehicleId')}
+      />
+      <Input
+        label="Vencimiento del carnet de conducir"
+        type="date"
+        error={errors.licenseExpiresAt?.message}
+        {...register('licenseExpiresAt')}
       />
 
       <Button type="submit" isLoading={isSubmitting}>

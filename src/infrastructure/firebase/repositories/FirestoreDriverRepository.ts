@@ -25,6 +25,7 @@ interface DriverDocument {
   readonly phone: string
   readonly assignedVehicleId: string | null
   readonly status: DriverStatus
+  readonly licenseExpiresAt: string | null
   readonly photoUrl?: string
 }
 
@@ -37,6 +38,7 @@ function fromFirestore(id: string, data: DocumentData): Driver {
     phone: createPhoneNumber(raw.phone),
     assignedVehicleId: raw.assignedVehicleId ?? null,
     status: raw.status,
+    licenseExpiresAt: raw.licenseExpiresAt ?? null,
     photoUrl: raw.photoUrl,
   }
 }

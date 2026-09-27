@@ -36,3 +36,21 @@ export function addMinutes(iso: string, minutes: number): string {
 export function minutesBetween(fromIso: string, toIso: string): number {
   return Math.round((new Date(toIso).getTime() - new Date(fromIso).getTime()) / 60_000)
 }
+
+// Para fechas puras "yyyy-mm-dd" (vencimientos de seguro/VTV/carnet, sin
+// hora): a propósito NO pasa por `new Date(...)` + Intl con timeZone, porque
+// eso interpreta el string como medianoche UTC y puede mostrar un día menos
+// en America/Argentina/Buenos_Aires (UTC-3).
+export function formatIsoDate(isoDate: string): string {
+  const [year, month, day] = isoDate.split('-')
+  return `${day}/${month}/${year}`
+}
+
+// Misma lógica de comparación por string "yyyy-mm-dd" (ordena igual que por
+// fecha real) para no depender de zona horaria.
+export function isPastDate(isoDate: string): boolean {
+  const todayIsoDate = new Intl.DateTimeFormat('en-CA', { timeZone: DEFAULT_TIMEZONE }).format(
+    new Date(),
+  )
+  return isoDate < todayIsoDate
+}
