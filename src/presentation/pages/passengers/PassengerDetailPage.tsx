@@ -2,8 +2,13 @@ import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 
 import type { TripListItemDto } from '@/application/dto/TripListItemDto'
+import type { GenerateRecurringTripsResult } from '@/application/useCases/GenerateRecurringTripsUseCase'
+import { getDriverFullName } from '@/domain/entities/Driver'
 import type { PassengerSensitiveInfo } from '@/domain/entities/Passenger'
+import { PassengerStatus } from '@/domain/enums/PassengerStatus'
+import { useAuth } from '@/app/providers/AuthProvider'
 import { useCases } from '@/app/providers/dependencies'
+import { Alert } from '@/presentation/components/Alert'
 import { Avatar } from '@/presentation/components/Avatar'
 import { Badge } from '@/presentation/components/Badge'
 import { Button } from '@/presentation/components/Button'
@@ -15,22 +20,31 @@ import { Modal } from '@/presentation/components/Modal'
 import { StatusBadge } from '@/presentation/components/StatusBadge'
 import { Table, type TableColumn } from '@/presentation/components/Table'
 import { Tabs } from '@/presentation/components/Tabs'
+import { useDrivers } from '@/presentation/hooks/useDrivers'
 import { useGuardians } from '@/presentation/hooks/useGuardians'
 import { useNotificationsByPassenger } from '@/presentation/hooks/useNotificationsByPassenger'
 import { usePassenger } from '@/presentation/hooks/usePassenger'
 import { usePassengerDestinations } from '@/presentation/hooks/usePassengerDestinations'
 import { useScheduleRecommendation } from '@/presentation/hooks/useScheduleRecommendation'
 import { useTripsByPassenger } from '@/presentation/hooks/useTripsByPassenger'
+import { useVehicles } from '@/presentation/hooks/useVehicles'
 import {
   NOTIFICATION_TYPE_LABELS,
   NOTIFICATION_TYPE_TONE,
 } from '@/shared/constants/notification.constants'
+import {
+  PASSENGER_SEX_LABELS,
+  PASSENGER_STATUS_LABELS,
+} from '@/shared/constants/passenger.constants'
 import { formatDateTime, formatTime } from '@/shared/utils/date'
 import { formatDestinationSchedule } from '@/shared/utils/formatDestinationSchedule'
 import { formatPhone } from '@/shared/utils/formatPhone'
+import { formatVehiclePlate } from '@/shared/utils/formatVehiclePlate'
 
+import { GenerateRecurringTripsForm } from './GenerateRecurringTripsForm'
 import { PassengerDestinationForm } from './PassengerDestinationForm'
 import styles from './PassengerDetailPage.module.css'
+import { PassengerSensitiveInfoForm } from './PassengerSensitiveInfoForm'
 
 const TRIP_COLUMNS: readonly TableColumn<TripListItemDto>[] = [
   {
@@ -115,8 +129,27 @@ function ScheduleTab({ passengerId }: { readonly passengerId: string }) {
 }
 
 function DestinationsTab({ passengerId }: { readonly passengerId: string }) {
+  const { user } = useAuth()
   const destinations = usePassengerDestinations(passengerId)
+  const drivers = useDrivers()
+  const vehicles = useVehicles()
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [generatingForId, setGeneratingForId] = useState<string | null>(null)
+  const [generationResult, setGenerationResult] = useState<GenerateRecurringTripsResult | null>(
+    null,
+  )
+
+  const driverOptions =
+    drivers.state.status === 'success'
+      ? drivers.state.data.map((item) => ({ value: item.id, label: getDriverFullName(item) }))
+      : []
+  const vehicleOptions =
+    vehicles.state.status === 'success'
+      ? vehicles.state.data.map((item) => ({
+          value: item.id,
+          label: `${formatVehiclePlate(item.licensePlate)} — ${item.brand} ${item.model}`,
+        }))
+      : []
 
   return (
     <div>
@@ -127,6 +160,20 @@ function DestinationsTab({ passengerId }: { readonly passengerId: string }) {
         </p>
         <Button onClick={() => setIsModalOpen(true)}>Nuevo destino</Button>
       </div>
+
+      {generationResult && (
+        <Alert tone={generationResult.warnings.length > 0 ? 'warning' : 'success'}>
+          Se generaron {generationResult.trips.length} viaje
+          {generationResult.trips.length === 1 ? '' : 's'}.
+          {generationResult.warnings.length > 0 && (
+            <>
+              {' '}
+              {generationResult.warnings.length} con conflicto de agenda (quedó igual registrado,
+              revisalo en el detalle de cada viaje).
+            </>
+          )}
+        </Alert>
+      )}
 
       {destinations.state.status === 'loading' && <LoadingState message="Cargando destinos…" />}
       {destinations.state.status === 'error' && (
@@ -144,6 +191,9 @@ function DestinationsTab({ passengerId }: { readonly passengerId: string }) {
                 <span className={styles.infoLabel}>{destination.address.street}</span>
               </div>
               <Badge tone="info">{formatDestinationSchedule(destination)}</Badge>
+              <Button variant="ghost" onClick={() => setGeneratingForId(destination.id)}>
+                Generar viajes
+              </Button>
             </Card>
           ))}
         </div>
@@ -158,8 +208,36 @@ function DestinationsTab({ passengerId }: { readonly passengerId: string }) {
           }}
         />
       </Modal>
+
+      <Modal
+        isOpen={generatingForId !== null}
+        onClose={() => setGeneratingForId(null)}
+        title="Generar viajes recurrentes"
+      >
+        {generatingForId && (
+          <GenerateRecurringTripsForm
+            passengerId={passengerId}
+            destinationId={generatingForId}
+            driverOptions={driverOptions}
+            vehicleOptions={vehicleOptions}
+            registeredBy={user.fullName}
+            onGenerated={(result) => {
+              setGeneratingForId(null)
+              setGenerationResult(result)
+            }}
+          />
+        )}
+      </Modal>
     </div>
   )
+}
+
+// "yyyy-mm-dd" es una fecha de calendario pura, sin hora ni zona horaria —
+// formatearla a mano evita que el corrimiento UTC-3 la muestre un día antes
+// (mismo criterio que formatDestinationSchedule.ts).
+function formatBirthDate(isoDate: string): string {
+  const [year, month, day] = isoDate.split('-')
+  return `${day}/${month}/${year}`
 }
 
 export function PassengerDetailPage() {
@@ -168,6 +246,7 @@ export function PassengerDetailPage() {
   const guardians = useGuardians()
   const [sensitiveInfo, setSensitiveInfo] = useState<PassengerSensitiveInfo | null>(null)
   const [isLoadingSensitive, setIsLoadingSensitive] = useState(false)
+  const [isEditingSensitive, setIsEditingSensitive] = useState(false)
 
   if (!id) return <ErrorState message="No se indicó qué paciente mostrar." />
   const passengerId = id
@@ -182,7 +261,9 @@ export function PassengerDetailPage() {
       const info = await useCases.getPassengerSensitiveInfo.execute(passengerId)
       setSensitiveInfo(info)
     } catch {
-      setSensitiveInfo(null)
+      // No hay información sensible cargada todavía: se abre igual el panel
+      // (vacío) para que "Cargar información sensible" quede visible.
+      setSensitiveInfo({ passengerId })
     } finally {
       setIsLoadingSensitive(false)
     }
@@ -220,6 +301,24 @@ export function PassengerDetailPage() {
 
       <Card className={styles.infoCard}>
         <div className={styles.infoRow}>
+          <span className={styles.infoLabel}>Estado</span>
+          <Badge tone={data.status === PassengerStatus.ACTIVE ? 'success' : 'neutral'}>
+            {PASSENGER_STATUS_LABELS[data.status]}
+          </Badge>
+        </div>
+        {data.birthDate && (
+          <div className={styles.infoRow}>
+            <span className={styles.infoLabel}>Fecha de nacimiento</span>
+            <span>{formatBirthDate(data.birthDate)}</span>
+          </div>
+        )}
+        {data.sex && (
+          <div className={styles.infoRow}>
+            <span className={styles.infoLabel}>Sexo</span>
+            <span>{PASSENGER_SEX_LABELS[data.sex]}</span>
+          </div>
+        )}
+        <div className={styles.infoRow}>
           <span className={styles.infoLabel}>Domicilio</span>
           <span>{data.homeAddress.street}</span>
         </div>
@@ -237,6 +336,12 @@ export function PassengerDetailPage() {
             <span>{formatPhone(guardian.phone)}</span>
           </div>
         )}
+        {data.operationalNotes && (
+          <div className={styles.infoRow}>
+            <span className={styles.infoLabel}>Observaciones operativas</span>
+            <span>{data.operationalNotes}</span>
+          </div>
+        )}
 
         <Button
           variant="ghost"
@@ -248,11 +353,33 @@ export function PassengerDetailPage() {
         {sensitiveInfo && (
           <div className={styles.sensitiveInfo}>
             {sensitiveInfo.documentNumber && <span>Documento: {sensitiveInfo.documentNumber}</span>}
+            {sensitiveInfo.bloodType && <span>Grupo sanguíneo: {sensitiveInfo.bloodType}</span>}
+            {sensitiveInfo.allergies && sensitiveInfo.allergies.length > 0 && (
+              <span>Alergias: {sensitiveInfo.allergies.join(', ')}</span>
+            )}
             {sensitiveInfo.medicalNotes && <span>Notas médicas: {sensitiveInfo.medicalNotes}</span>}
             {sensitiveInfo.observations && <span>Observaciones: {sensitiveInfo.observations}</span>}
+            <Button variant="ghost" onClick={() => setIsEditingSensitive(true)}>
+              Editar información sensible
+            </Button>
           </div>
         )}
       </Card>
+
+      <Modal
+        isOpen={isEditingSensitive}
+        onClose={() => setIsEditingSensitive(false)}
+        title="Información sensible"
+      >
+        <PassengerSensitiveInfoForm
+          passengerId={passengerId}
+          initialValues={sensitiveInfo}
+          onSaved={(info) => {
+            setSensitiveInfo(info)
+            setIsEditingSensitive(false)
+          }}
+        />
+      </Modal>
 
       <Tabs
         tabs={[

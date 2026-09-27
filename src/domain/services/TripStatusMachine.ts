@@ -7,7 +7,30 @@ import { getEventTypeForStatus } from './TripNotificationRules'
 // implementación "real" distinta de esta): es lógica de negocio pura, por
 // eso vive en Domain como funciones en lugar de como contrato + Infra.
 const ALLOWED_TRANSITIONS: Record<TripStatus, readonly TripStatus[]> = {
-  [TripStatus.SCHEDULED]: [TripStatus.ON_THE_WAY, TripStatus.CANCELLED],
+  // Desde que se crea el viaje (ya con chofer/vehículo elegidos, ver
+  // RegisterTripUseCase) hasta que el chofer efectivamente sale, el viaje
+  // pasa por la confirmación del familiar y la aceptación del chofer. Se
+  // puede cancelar o reprogramar en cualquier punto antes de salir.
+  [TripStatus.SCHEDULED]: [
+    TripStatus.CONFIRMATION_PENDING,
+    TripStatus.CANCELLED,
+    TripStatus.RESCHEDULED,
+  ],
+  [TripStatus.CONFIRMATION_PENDING]: [
+    TripStatus.CONFIRMED,
+    TripStatus.CANCELLED,
+    TripStatus.RESCHEDULED,
+  ],
+  [TripStatus.CONFIRMED]: [
+    TripStatus.DRIVER_ACCEPTED,
+    TripStatus.CANCELLED,
+    TripStatus.RESCHEDULED,
+  ],
+  [TripStatus.DRIVER_ACCEPTED]: [
+    TripStatus.ON_THE_WAY,
+    TripStatus.CANCELLED,
+    TripStatus.RESCHEDULED,
+  ],
   [TripStatus.ON_THE_WAY]: [
     TripStatus.NEAR_HOME,
     TripStatus.DELAYED,
@@ -15,20 +38,42 @@ const ALLOWED_TRANSITIONS: Record<TripStatus, readonly TripStatus[]> = {
     TripStatus.CANCELLED,
   ],
   [TripStatus.NEAR_HOME]: [TripStatus.ARRIVING, TripStatus.DELAYED, TripStatus.INCIDENT],
-  [TripStatus.ARRIVING]: [TripStatus.PICKED_UP, TripStatus.DELAYED, TripStatus.INCIDENT],
+  // NO_SHOW se descubre acá: el chofer llegó, esperó, y el paciente no salió.
+  [TripStatus.ARRIVING]: [
+    TripStatus.PICKED_UP,
+    TripStatus.DELAYED,
+    TripStatus.INCIDENT,
+    TripStatus.NO_SHOW,
+  ],
   [TripStatus.PICKED_UP]: [TripStatus.IN_TRANSIT],
   [TripStatus.IN_TRANSIT]: [TripStatus.NEAR_DESTINATION, TripStatus.DELAYED, TripStatus.INCIDENT],
-  [TripStatus.NEAR_DESTINATION]: [TripStatus.COMPLETED, TripStatus.DELAYED, TripStatus.INCIDENT],
+  [TripStatus.NEAR_DESTINATION]: [
+    TripStatus.ARRIVED_AT_DESTINATION,
+    TripStatus.DELAYED,
+    TripStatus.INCIDENT,
+  ],
+  // Llegar al destino y finalizar el viaje son dos momentos distintos (ver
+  // el mismo paso ya separado en NEAR_HOME→ARRIVING→PICKED_UP): permite
+  // registrar "cuándo llegó" separado de "cuándo terminó" (rule pedida:
+  // trazabilidad completa).
+  [TripStatus.ARRIVED_AT_DESTINATION]: [
+    TripStatus.COMPLETED,
+    TripStatus.DELAYED,
+    TripStatus.INCIDENT,
+  ],
   [TripStatus.COMPLETED]: [],
   // Desde un estado excepcional se puede retomar el recorrido en cualquier
-  // punto donde estaba, o cancelarse.
+  // punto donde estaba, cancelarse, o darse por no realizado si no se puede
+  // resolver.
   [TripStatus.DELAYED]: [
     TripStatus.ON_THE_WAY,
     TripStatus.NEAR_HOME,
     TripStatus.ARRIVING,
     TripStatus.IN_TRANSIT,
     TripStatus.NEAR_DESTINATION,
+    TripStatus.ARRIVED_AT_DESTINATION,
     TripStatus.CANCELLED,
+    TripStatus.NOT_COMPLETED,
   ],
   [TripStatus.INCIDENT]: [
     TripStatus.ON_THE_WAY,
@@ -36,9 +81,14 @@ const ALLOWED_TRANSITIONS: Record<TripStatus, readonly TripStatus[]> = {
     TripStatus.ARRIVING,
     TripStatus.IN_TRANSIT,
     TripStatus.NEAR_DESTINATION,
+    TripStatus.ARRIVED_AT_DESTINATION,
     TripStatus.CANCELLED,
+    TripStatus.NOT_COMPLETED,
   ],
   [TripStatus.CANCELLED]: [],
+  [TripStatus.NO_SHOW]: [],
+  [TripStatus.RESCHEDULED]: [],
+  [TripStatus.NOT_COMPLETED]: [],
 }
 
 // Evita que un traslado salte de forma arbitraria entre estados (ej. de
@@ -51,17 +101,30 @@ export function getNextPossibleStatuses(from: TripStatus): readonly TripStatus[]
   return ALLOWED_TRANSITIONS[from]
 }
 
+// Un estado es terminal cuando no tiene ninguna transición posible — se
+// deriva de la misma tabla en vez de mantener una segunda lista, para que no
+// puedan desincronizarse. Se usa para saber si un viaje sigue "ocupando" a
+// su chofer/vehículo (rule pedida: detectar solapamientos de agenda) y para
+// impedir reasignar chofer/vehículo en un traslado ya cerrado.
+export function isTerminalTripStatus(status: TripStatus): boolean {
+  return ALLOWED_TRANSITIONS[status].length === 0
+}
+
 // Orden del "camino feliz", usado para renderizar la línea de progreso en
 // el detalle del traslado (rule 7). Los estados excepcionales no forman
 // parte de esta línea: se muestran aparte, como alerta.
 export const HAPPY_PATH_TRIP_STATUSES: readonly TripStatus[] = [
   TripStatus.SCHEDULED,
+  TripStatus.CONFIRMATION_PENDING,
+  TripStatus.CONFIRMED,
+  TripStatus.DRIVER_ACCEPTED,
   TripStatus.ON_THE_WAY,
   TripStatus.NEAR_HOME,
   TripStatus.ARRIVING,
   TripStatus.PICKED_UP,
   TripStatus.IN_TRANSIT,
   TripStatus.NEAR_DESTINATION,
+  TripStatus.ARRIVED_AT_DESTINATION,
   TripStatus.COMPLETED,
 ]
 
@@ -69,7 +132,10 @@ export function isExceptionalStatus(status: TripStatus): boolean {
   return (
     status === TripStatus.DELAYED ||
     status === TripStatus.INCIDENT ||
-    status === TripStatus.CANCELLED
+    status === TripStatus.CANCELLED ||
+    status === TripStatus.NO_SHOW ||
+    status === TripStatus.RESCHEDULED ||
+    status === TripStatus.NOT_COMPLETED
   )
 }
 

@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { Passenger } from '@/domain/entities/Passenger'
 import type { Trip } from '@/domain/entities/Trip'
 import type { NotificationSettings } from '@/domain/entities/NotificationSettings'
+import { PassengerStatus } from '@/domain/enums/PassengerStatus'
 import { ProximityCriterion } from '@/domain/enums/ProximityCriterion'
 import { TripStatus } from '@/domain/enums/TripStatus'
 import type { NotificationRepository } from '@/domain/repositories/NotificationRepository'
@@ -42,6 +43,9 @@ const passenger: Passenger = {
   homeAddress: { street: 'Calle 1', coordinates: { latitude: 0, longitude: 0 } },
   destinationAddress: { street: 'Calle 2', coordinates: { latitude: 1, longitude: 1 } },
   guardianId: 'guardian-1',
+  status: PassengerStatus.ACTIVE,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
 }
 
 const settings: NotificationSettings = {
@@ -69,6 +73,7 @@ function buildUseCase() {
     getPassengerById: () => Promise.resolve(passenger),
     registerPassenger: () => Promise.reject(new Error('no usado en este test')),
     getSensitiveInfo: () => Promise.reject(new Error('no usado en este test')),
+    updateSensitiveInfo: () => Promise.reject(new Error('no usado en este test')),
   }
   const notificationSettingsRepository: NotificationSettingsRepository = {
     getSettings: () => Promise.resolve(settings),

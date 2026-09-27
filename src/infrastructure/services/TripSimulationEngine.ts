@@ -26,6 +26,7 @@ const ACTIVE_STATUSES: readonly TripStatus[] = [
   TripStatus.PICKED_UP,
   TripStatus.IN_TRANSIT,
   TripStatus.NEAR_DESTINATION,
+  TripStatus.ARRIVED_AT_DESTINATION,
 ]
 
 function lerpCoordinates(from: GeoCoordinates, to: GeoCoordinates, ratio: number): GeoCoordinates {
@@ -141,8 +142,13 @@ export class TripSimulationEngine {
   }
 
   private resolveTransitStatus(current: TripStatus, distanceMeters: number): TripStatus | null {
-    if (current === TripStatus.NEAR_DESTINATION && distanceMeters <= ARRIVAL_EPSILON_METERS) {
+    // Un tick de diferencia entre "llegó" y "finalizado" (rule pedida:
+    // separar ambos momentos en la trazabilidad, ver TripStatusMachine).
+    if (current === TripStatus.ARRIVED_AT_DESTINATION) {
       return TripStatus.COMPLETED
+    }
+    if (current === TripStatus.NEAR_DESTINATION && distanceMeters <= ARRIVAL_EPSILON_METERS) {
+      return TripStatus.ARRIVED_AT_DESTINATION
     }
     if (current === TripStatus.IN_TRANSIT && distanceMeters <= NEAR_DESTINATION_THRESHOLD_METERS) {
       return TripStatus.NEAR_DESTINATION

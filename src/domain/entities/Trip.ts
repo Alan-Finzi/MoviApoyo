@@ -28,4 +28,10 @@ export interface Trip {
   // UpdateTripStatusUseCase).
   readonly actualDepartureAt: string | null
   readonly actualArrivalAt: string | null
+  // Si este traslado se generó a partir de un PassengerDestination
+  // recurrente (ver GenerateRecurringTripsUseCase), guarda su id — solo para
+  // trazabilidad ("de qué plantilla salió"). El traslado sigue siendo 100%
+  // independiente: cambiarle el estado, el chofer o el vehículo nunca afecta
+  // a la plantilla ni a otros traslados generados desde ella.
+  readonly sourceDestinationId?: string
 }

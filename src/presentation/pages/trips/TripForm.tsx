@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
 import { useCases } from '@/app/providers/dependencies'
+import type { AssignmentConflict } from '@/domain/services/AssignmentConflictChecker'
 import { Alert } from '@/presentation/components/Alert'
 import { Button } from '@/presentation/components/Button'
 import { Input } from '@/presentation/components/Input'
@@ -31,6 +32,7 @@ interface TripFormProps {
   readonly passengerOptions: readonly SelectOption[]
   readonly driverOptions: readonly SelectOption[]
   readonly vehicleOptions: readonly SelectOption[]
+  readonly registeredBy: string
   readonly onRegistered: () => void
 }
 
@@ -42,12 +44,16 @@ export function TripForm({
   passengerOptions,
   driverOptions,
   vehicleOptions,
+  registeredBy,
   onRegistered,
 }: TripFormProps) {
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [conflicts, setConflicts] = useState<readonly AssignmentConflict[] | null>(null)
+  const [isCheckingConflicts, setIsCheckingConflicts] = useState(false)
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
     reset,
   } = useForm<TripFormValues>({
@@ -61,20 +67,65 @@ export function TripForm({
     },
   })
 
+  // Si el coordinador cambia chofer/vehículo/horario después de ver una
+  // advertencia de conflicto, esa advertencia queda obsoleta — se descarta
+  // para forzar un chequeo nuevo antes de guardar.
+  const assignmentFields = watch(['driverId', 'vehicleId', 'scheduledDeparture', 'estimatedArrival'])
+  const previousAssignmentFields = useRef(assignmentFields)
+  useEffect(() => {
+    if (previousAssignmentFields.current.join('|') !== assignmentFields.join('|')) {
+      setConflicts(null)
+    }
+    previousAssignmentFields.current = assignmentFields
+  }, [assignmentFields])
+
+  async function registerTrip(values: TripFormValues): Promise<void> {
+    await useCases.registerTrip.execute({
+      passengerId: values.passengerId,
+      driverId: values.driverId,
+      vehicleId: values.vehicleId,
+      scheduledDeparture: new Date(values.scheduledDeparture).toISOString(),
+      estimatedArrival: new Date(values.estimatedArrival).toISOString(),
+      registeredBy,
+      overriddenConflicts: conflicts?.map((conflict) => conflict.message),
+    })
+    reset()
+    setConflicts(null)
+    onRegistered()
+  }
+
   async function onSubmit(values: TripFormValues): Promise<void> {
     setSubmitError(null)
+
+    // Ya se mostró la advertencia y el coordinador decidió guardar de todos
+    // modos (rule pedida: no bloquear, pero que la excepción quede
+    // auditada — ver descripción del traslado en RegisterTripUseCase).
+    if (conflicts && conflicts.length > 0) {
+      try {
+        await registerTrip(values)
+      } catch (error) {
+        setSubmitError(toAppError(error).message)
+      }
+      return
+    }
+
+    setIsCheckingConflicts(true)
     try {
-      await useCases.registerTrip.execute({
-        passengerId: values.passengerId,
+      const found = await useCases.checkAssignmentConflicts.execute({
         driverId: values.driverId,
         vehicleId: values.vehicleId,
         scheduledDeparture: new Date(values.scheduledDeparture).toISOString(),
         estimatedArrival: new Date(values.estimatedArrival).toISOString(),
       })
-      reset()
-      onRegistered()
+      if (found.length > 0) {
+        setConflicts(found)
+        return
+      }
+      await registerTrip(values)
     } catch (error) {
       setSubmitError(toAppError(error).message)
+    } finally {
+      setIsCheckingConflicts(false)
     }
   }
 
@@ -117,8 +168,20 @@ export function TripForm({
         {...register('estimatedArrival')}
       />
 
-      <Button type="submit" isLoading={isSubmitting}>
-        Guardar traslado
+      {conflicts && conflicts.length > 0 && (
+        <Alert tone="warning">
+          <strong>Se detectaron posibles conflictos de asignación:</strong>
+          <ul className={styles.conflictList}>
+            {conflicts.map((conflict, index) => (
+              <li key={`${conflict.type}-${index}`}>{conflict.message}</li>
+            ))}
+          </ul>
+          Podés guardar igual si hay un motivo operativo para hacerlo.
+        </Alert>
+      )}
+
+      <Button type="submit" isLoading={isSubmitting || isCheckingConflicts}>
+        {conflicts && conflicts.length > 0 ? 'Guardar de todos modos' : 'Guardar traslado'}
       </Button>
     </form>
   )

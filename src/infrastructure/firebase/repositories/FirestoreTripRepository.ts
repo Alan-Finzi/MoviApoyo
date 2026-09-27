@@ -38,6 +38,7 @@ interface TripDocument {
   readonly notifiedMilestones?: readonly string[]
   readonly actualDepartureAt?: string | null
   readonly actualArrivalAt?: string | null
+  readonly sourceDestinationId?: string
 }
 
 function fromFirestore(id: string, data: DocumentData): Trip {
@@ -58,6 +59,7 @@ function fromFirestore(id: string, data: DocumentData): Trip {
     notifiedMilestones: raw.notifiedMilestones ?? [],
     actualDepartureAt: raw.actualDepartureAt ?? null,
     actualArrivalAt: raw.actualArrivalAt ?? null,
+    sourceDestinationId: raw.sourceDestinationId,
   }
 }
 

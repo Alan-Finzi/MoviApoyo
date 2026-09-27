@@ -12,8 +12,15 @@ futuro "panel de chofer" o "panel de familia" web (rule 58/59 del
 enunciado original): esos paneles quedan **reemplazados** por este bot, no
 se van a construir como pantallas de React.
 
-> Este documento describe el diseño. Todavía no hay backend ni webhook
-> implementado — es la base para cuando se decida construirlo (ver
+> Este documento describe el diseño. Ya existe un backend/webhook
+> implementado en `functions/` (identificación de chofer/familiar,
+> idempotencia, botones de estado del chofer, confirmación/cancelación del
+> familiar, envío real por la Graph API de Meta) — ver
+> [`functions/README.md`](../functions/README.md) para el detalle exacto de
+> qué está hecho y qué falta. Lo que sigue pendiente, todavía sin una cuenta
+> real de Meta conectada: validar la firma del webhook, avanzar estados por
+> proximidad real de GPS, el flujo completo de incidentes con lista de
+> tipos, y las consultas de los padres (ver
 > [Qué falta para implementarlo](#qué-falta-para-implementarlo)).
 
 ## Por qué esto no puede vivir en este repositorio
@@ -128,18 +135,27 @@ frontend) — probablemente una tabla/colección simple con un TTL corto.
 
 ## Qué falta para implementarlo
 
-1. Elegir el backend (Node/Express vs. serverless) y dónde se hostea — la
-   misma decisión pendiente en `docs/api.md`.
-2. Conseguir acceso a WhatsApp Business API: cuenta de Meta for Developers +
-   número verificado, o un proveedor intermediario (Twilio, 360dialog,
-   Gupshup) si se prefiere no lidiar directo con la API de Meta.
-3. Migrar los repositorios de `Mock*` a `*Api` (o a acceso directo a una base
-   de datos, si el backend y el "backend del bot" son el mismo servicio) —
-   ver `docs/api.md`.
-4. Implementar el webhook handler, el `IdentityResolver`, el
-   `UpdateVehicleLocationUseCase` y el manejo de conversación de varios
-   pasos descritos arriba.
-5. Dar de baja (o dejar sin uso) las rutas `RoleGuard` pensadas para un
+Ya resuelto: el backend es Cloud Functions (Firebase, `functions/`), con el
+webhook handler, el resolver de identidad, la idempotencia por mensaje, los
+botones del chofer y la confirmación/cancelación del familiar implementados
+— ver [`functions/README.md`](../functions/README.md) para el detalle
+completo de qué hay y qué falta ahí puntualmente. Pendiente a nivel de
+proyecto:
+
+1. Conseguir acceso real a WhatsApp Business API: cuenta de Meta for
+   Developers + número verificado. Nada de lo implementado se probó todavía
+   contra una cuenta real — hoy solo se verificó que compila y que la lógica
+   de negocio (transiciones de estado, idempotencia) tiene tests del lado
+   del código compartido con la web.
+2. Migrar los repositorios de `Mock*` a `*Api` del lado de la web (o a
+   acceso directo a una base de datos) — ver `docs/api.md`. El webhook de
+   `functions/` ya usa Firestore directo, independiente de esta migración.
+3. `UpdateVehicleLocationUseCase` (avanzar el estado del traslado por
+   proximidad real de GPS en vez de saltear los pasos intermedios de una
+   sola vez) y el manejo de conversación de varios pasos para el flujo
+   completo de incidentes (hoy es un botón único, ver
+   `functions/README.md`).
+4. Dar de baja (o dejar sin uso) las rutas `RoleGuard` pensadas para un
    futuro panel de chofer/familia en la web — con este diseño, esos roles ya
    no necesitan pantallas propias. Es una decisión pendiente de confirmar
    antes de tocar el código de `app/router/`.

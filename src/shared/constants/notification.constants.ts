@@ -10,6 +10,7 @@ export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
   [NotificationType.INCIDENT]: 'Incidente',
   [NotificationType.CHILD_PICKED_UP]: 'Paciente recogido',
   [NotificationType.CHILD_DELIVERED]: 'Paciente entregado',
+  [NotificationType.CONFIRMATION_REQUESTED]: 'Confirmación solicitada',
 }
 
 // Colores del centro de notificaciones (rule 14): 🟢🟡🔴🔵🟣.
@@ -19,6 +20,7 @@ export const NOTIFICATION_TYPE_TONE: Record<NotificationType, StatusTone> = {
   [NotificationType.INCIDENT]: 'danger',
   [NotificationType.CHILD_PICKED_UP]: 'info',
   [NotificationType.CHILD_DELIVERED]: 'info',
+  [NotificationType.CONFIRMATION_REQUESTED]: 'warning',
 }
 
 export const NOTIFICATION_STATUS_LABELS: Record<NotificationStatus, string> = {
@@ -44,5 +46,8 @@ export const INCIDENT_TYPE_LABELS: Record<IncidentType, string> = {
   [IncidentType.ACCIDENT]: 'Accidente de tránsito',
   [IncidentType.WEATHER]: 'Problema climático',
   [IncidentType.DRIVER_DELAY]: 'Demora del chofer',
+  [IncidentType.HOME_ISSUE]: 'Problema con el domicilio',
+  [IncidentType.PATIENT_ISSUE]: 'Problema con el paciente',
+  [IncidentType.EMERGENCY]: 'Emergencia',
   [IncidentType.OTHER]: 'Otro',
 }

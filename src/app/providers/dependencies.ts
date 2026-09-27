@@ -1,12 +1,18 @@
 import { env } from '@/app/config/env'
+import { CancelTripByGuardianUseCase } from '@/application/useCases/CancelTripByGuardianUseCase'
+import { CheckAssignmentConflictsUseCase } from '@/application/useCases/CheckAssignmentConflictsUseCase'
+import { ConfirmTripUseCase } from '@/application/useCases/ConfirmTripUseCase'
 import { CheckTripProximityUseCase } from '@/application/useCases/CheckTripProximityUseCase'
+import { GenerateRecurringTripsUseCase } from '@/application/useCases/GenerateRecurringTripsUseCase'
 import { GetDashboardSummaryUseCase } from '@/application/useCases/GetDashboardSummaryUseCase'
 import { GetDriverByIdUseCase } from '@/application/useCases/GetDriverByIdUseCase'
 import { GetDriversUseCase } from '@/application/useCases/GetDriversUseCase'
 import { GetGuardiansUseCase } from '@/application/useCases/GetGuardiansUseCase'
+import { GetIncidentsByTripUseCase } from '@/application/useCases/GetIncidentsByTripUseCase'
 import { GetIncidentsUseCase } from '@/application/useCases/GetIncidentsUseCase'
 import { GetNotificationSettingsUseCase } from '@/application/useCases/GetNotificationSettingsUseCase'
 import { GetNotificationsByPassengerUseCase } from '@/application/useCases/GetNotificationsByPassengerUseCase'
+import { GetNotificationsByTripUseCase } from '@/application/useCases/GetNotificationsByTripUseCase'
 import { GetNotificationsUseCase } from '@/application/useCases/GetNotificationsUseCase'
 import { GetPassengerByIdUseCase } from '@/application/useCases/GetPassengerByIdUseCase'
 import { GetPassengerDestinationsUseCase } from '@/application/useCases/GetPassengerDestinationsUseCase'
@@ -25,11 +31,14 @@ import { RegisterDriverUseCase } from '@/application/useCases/RegisterDriverUseC
 import { RegisterIncidentUseCase } from '@/application/useCases/RegisterIncidentUseCase'
 import { RegisterPassengerDestinationUseCase } from '@/application/useCases/RegisterPassengerDestinationUseCase'
 import { RegisterPassengerUseCase } from '@/application/useCases/RegisterPassengerUseCase'
+import { ReassignTripUseCase } from '@/application/useCases/ReassignTripUseCase'
 import { RegisterTripUseCase } from '@/application/useCases/RegisterTripUseCase'
 import { RegisterVehicleUseCase } from '@/application/useCases/RegisterVehicleUseCase'
+import { RequestTripConfirmationUseCase } from '@/application/useCases/RequestTripConfirmationUseCase'
 import { SendNotificationUseCase } from '@/application/useCases/SendNotificationUseCase'
 import { StartTripUseCase } from '@/application/useCases/StartTripUseCase'
 import { UpdateNotificationSettingsUseCase } from '@/application/useCases/UpdateNotificationSettingsUseCase'
+import { UpdatePassengerSensitiveInfoUseCase } from '@/application/useCases/UpdatePassengerSensitiveInfoUseCase'
 import { UpdateTripStatusUseCase } from '@/application/useCases/UpdateTripStatusUseCase'
 import type { AuthRepository } from '@/domain/repositories/AuthRepository'
 import type { DriverRepository } from '@/domain/repositories/DriverRepository'
@@ -165,6 +174,11 @@ const getTripsUseCase = new GetTripsUseCase(
   vehicleRepository,
 )
 const getTripsByPassengerUseCase = new GetTripsByPassengerUseCase(getTripsUseCase)
+const checkAssignmentConflictsUseCase = new CheckAssignmentConflictsUseCase(
+  tripRepository,
+  driverRepository,
+  vehicleRepository,
+)
 
 export const useCases = {
   getTrips: getTripsUseCase,
@@ -182,7 +196,10 @@ export const useCases = {
     vehicleRepository,
     guardianRepository,
   ),
-  startTrip: new StartTripUseCase(updateTripStatusUseCase),
+  startTrip: new StartTripUseCase(tripRepository, updateTripStatusUseCase),
+  requestTripConfirmation: new RequestTripConfirmationUseCase(updateTripStatusUseCase),
+  confirmTrip: new ConfirmTripUseCase(updateTripStatusUseCase),
+  cancelTripByGuardian: new CancelTripByGuardianUseCase(updateTripStatusUseCase),
   updateTripStatus: updateTripStatusUseCase,
   registerIncident: new RegisterIncidentUseCase(
     incidentRepository,
@@ -209,10 +226,25 @@ export const useCases = {
     passengerDestinationRepository,
   ),
   registerTrip: new RegisterTripUseCase(tripRepository, passengerRepository),
+  reassignTrip: new ReassignTripUseCase(tripRepository, driverRepository, vehicleRepository),
+  checkAssignmentConflicts: checkAssignmentConflictsUseCase,
+  generateRecurringTrips: new GenerateRecurringTripsUseCase(
+    tripRepository,
+    passengerDestinationRepository,
+    passengerRepository,
+    checkAssignmentConflictsUseCase,
+  ),
   getGuardians: new GetGuardiansUseCase(guardianRepository),
   getPassengerSensitiveInfo: new GetPassengerSensitiveInfoUseCase(passengerRepository),
+  updatePassengerSensitiveInfo: new UpdatePassengerSensitiveInfoUseCase(passengerRepository),
   getIncidents: new GetIncidentsUseCase(incidentRepository),
-  getDashboardSummary: new GetDashboardSummaryUseCase(tripRepository, vehicleRepository),
+  getIncidentsByTrip: new GetIncidentsByTripUseCase(incidentRepository),
+  getNotificationsByTrip: new GetNotificationsByTripUseCase(notificationRepository),
+  getDashboardSummary: new GetDashboardSummaryUseCase(
+    tripRepository,
+    vehicleRepository,
+    incidentRepository,
+  ),
 }
 
 // Motor de simulación (rule 46/48): se arranca una única vez desde la raíz

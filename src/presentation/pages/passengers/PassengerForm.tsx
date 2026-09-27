@@ -4,19 +4,28 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
 import { useCases } from '@/app/providers/dependencies'
+import { PassengerSex } from '@/domain/enums/PassengerSex'
 import { Alert } from '@/presentation/components/Alert'
 import { Button } from '@/presentation/components/Button'
 import { Input } from '@/presentation/components/Input'
 import { LocationPickerMap } from '@/presentation/components/LocationPickerMap'
 import { Select, type SelectOption } from '@/presentation/components/Select'
 import { DEFAULT_MAP_CENTER } from '@/shared/constants/app.constants'
+import { PASSENGER_SEX_LABELS } from '@/shared/constants/passenger.constants'
 import { toAppError } from '@/shared/errors/AppError'
 
 import styles from './PassengerForm.module.css'
 
+const PASSENGER_SEX_OPTIONS: readonly SelectOption[] = Object.values(PassengerSex).map((sex) => ({
+  value: sex,
+  label: PASSENGER_SEX_LABELS[sex],
+}))
+
 const passengerFormSchema = z.object({
   firstName: z.string().min(1, 'Ingresá el nombre.'),
   lastName: z.string().min(1, 'Ingresá el apellido.'),
+  birthDate: z.string().optional(),
+  sex: z.enum(PassengerSex).optional().or(z.literal('')),
   homeAddressStreet: z.string().min(1, 'Ingresá el domicilio.'),
   homeLatitude: z.number(),
   homeLongitude: z.number(),
@@ -24,6 +33,7 @@ const passengerFormSchema = z.object({
   destinationLatitude: z.number(),
   destinationLongitude: z.number(),
   guardianId: z.string().min(1, 'Seleccioná un tutor.'),
+  operationalNotes: z.string().max(300).optional(),
 })
 
 type PassengerFormValues = z.infer<typeof passengerFormSchema>
@@ -51,6 +61,8 @@ export function PassengerForm({ guardianOptions, onRegistered }: PassengerFormPr
     defaultValues: {
       firstName: '',
       lastName: '',
+      birthDate: '',
+      sex: '',
       homeAddressStreet: '',
       homeLatitude: DEFAULT_MAP_CENTER.latitude,
       homeLongitude: DEFAULT_MAP_CENTER.longitude,
@@ -58,6 +70,7 @@ export function PassengerForm({ guardianOptions, onRegistered }: PassengerFormPr
       destinationLatitude: DEFAULT_MAP_CENTER.latitude,
       destinationLongitude: DEFAULT_MAP_CENTER.longitude,
       guardianId: '',
+      operationalNotes: '',
     },
   })
 
@@ -70,7 +83,12 @@ export function PassengerForm({ guardianOptions, onRegistered }: PassengerFormPr
   async function onSubmit(values: PassengerFormValues): Promise<void> {
     setSubmitError(null)
     try {
-      await useCases.registerPassenger.execute(values)
+      await useCases.registerPassenger.execute({
+        ...values,
+        birthDate: values.birthDate ?? undefined,
+        sex: values.sex === '' ? undefined : values.sex,
+        operationalNotes: values.operationalNotes ?? undefined,
+      })
       reset()
       onRegistered()
     } catch (error) {
@@ -88,6 +106,18 @@ export function PassengerForm({ guardianOptions, onRegistered }: PassengerFormPr
 
       <Input label="Nombre" error={errors.firstName?.message} {...register('firstName')} />
       <Input label="Apellido" error={errors.lastName?.message} {...register('lastName')} />
+      <Input
+        label="Fecha de nacimiento (opcional)"
+        type="date"
+        error={errors.birthDate?.message}
+        {...register('birthDate')}
+      />
+      <Select
+        label="Sexo (opcional)"
+        options={[{ value: '', label: 'Sin especificar' }, ...PASSENGER_SEX_OPTIONS]}
+        error={errors.sex?.message}
+        {...register('sex')}
+      />
 
       <div className={styles.fieldGroup}>
         <span className={styles.groupTitle}>Domicilio</span>
@@ -126,6 +156,12 @@ export function PassengerForm({ guardianOptions, onRegistered }: PassengerFormPr
         options={[{ value: '', label: 'Seleccioná un tutor…' }, ...guardianOptions]}
         error={errors.guardianId?.message}
         {...register('guardianId')}
+      />
+
+      <Input
+        label="Observaciones operativas (opcional)"
+        error={errors.operationalNotes?.message}
+        {...register('operationalNotes')}
       />
 
       <Button type="submit" isLoading={isSubmitting}>

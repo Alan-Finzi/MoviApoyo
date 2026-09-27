@@ -88,3 +88,22 @@
   flex-direction: column;
   gap: var(--space-1);
 }
+
+.notificationList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.notificationItem {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.infoLabel {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}

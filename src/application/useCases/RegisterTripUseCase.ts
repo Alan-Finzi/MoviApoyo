@@ -10,6 +10,11 @@ export interface RegisterTripInput {
   readonly vehicleId: string
   readonly scheduledDeparture: string
   readonly estimatedArrival: string
+  readonly registeredBy: string
+  // Mensajes de CheckAssignmentConflictsUseCase que el coordinador decidió
+  // ignorar al guardar (rule pedida: no bloquear, pero que la excepción
+  // quede auditada). Si viene vacío/ausente, no se registra nada extra.
+  readonly overriddenConflicts?: readonly string[]
 }
 
 // Alta de traslado desde el panel de admin. El origen/destino se copian del
@@ -44,12 +49,24 @@ export class RegisterTripUseCase {
       actualArrivalAt: null,
     })
 
-    return this.tripRepository.appendTripEvent(trip.id, {
+    let updatedTrip = await this.tripRepository.appendTripEvent(trip.id, {
       tripId: trip.id,
       type: TripEventType.SCHEDULED,
       timestamp: new Date().toISOString(),
       description: 'Traslado programado.',
-      actor: 'Sistema',
+      actor: input.registeredBy,
     })
+
+    if (input.overriddenConflicts && input.overriddenConflicts.length > 0) {
+      updatedTrip = await this.tripRepository.appendTripEvent(trip.id, {
+        tripId: trip.id,
+        type: TripEventType.ASSIGNMENT_OVERRIDE,
+        timestamp: new Date().toISOString(),
+        description: `Se guardó el traslado a pesar de: ${input.overriddenConflicts.join(' / ')}`,
+        actor: input.registeredBy,
+      })
+    }
+
+    return updatedTrip
   }
 }

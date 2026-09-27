@@ -10,6 +10,8 @@ export type TripMutableFields = Partial<
     | 'currentLocation'
     | 'actualDepartureAt'
     | 'actualArrivalAt'
+    | 'driverId'
+    | 'vehicleId'
   >
 >
 

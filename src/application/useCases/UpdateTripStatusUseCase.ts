@@ -25,7 +25,12 @@ export class UpdateTripStatusUseCase {
     private readonly sendNotificationUseCase: SendNotificationUseCase,
   ) {}
 
-  async execute(tripId: string, nextStatus: TripStatus): Promise<Trip> {
+  async execute(
+    tripId: string,
+    nextStatus: TripStatus,
+    actor = 'Sistema',
+    reason?: string,
+  ): Promise<Trip> {
     const currentTrip = await this.tripRepository.getTripById(tripId)
 
     if (!canTransitionTripStatus(currentTrip.status, nextStatus)) {
@@ -36,11 +41,15 @@ export class UpdateTripStatusUseCase {
 
     // Se registra la hora real de salida/llegada (no la programada/estimada)
     // para poder comparar después y sugerir ajustes de horario (ver
-    // GetScheduleRecommendationUseCase).
+    // GetScheduleRecommendationUseCase). La llegada real se marca en
+    // ARRIVED_AT_DESTINATION (el momento físico de llegar), no en COMPLETED
+    // (que puede ser un cierre administrativo posterior).
     const changes: TripMutableFields = {
       status: nextStatus,
       ...(nextStatus === TripStatus.ON_THE_WAY && { actualDepartureAt: new Date().toISOString() }),
-      ...(nextStatus === TripStatus.COMPLETED && { actualArrivalAt: new Date().toISOString() }),
+      ...(nextStatus === TripStatus.ARRIVED_AT_DESTINATION && {
+        actualArrivalAt: new Date().toISOString(),
+      }),
     }
 
     const updatedTrip = await this.tripRepository.updateTrip(tripId, changes)
@@ -52,14 +61,18 @@ export class UpdateTripStatusUseCase {
       type: getEventTypeForStatus(nextStatus),
       timestamp: new Date().toISOString(),
       location: updatedTrip.currentLocation ?? undefined,
-      description: `Traslado actualizado a "${TRIP_STATUS_LABELS[nextStatus]}".`,
-      actor: 'Sistema',
+      description: reason
+        ? `Traslado actualizado a "${TRIP_STATUS_LABELS[nextStatus]}". Motivo: ${reason}`
+        : `Traslado actualizado a "${TRIP_STATUS_LABELS[nextStatus]}".`,
+      actor,
+      reason,
     })
 
     const message = getNotificationMessageForStatus(
       nextStatus,
       passenger.firstName,
       updatedTrip.estimatedArrival,
+      updatedTrip.scheduledDeparture,
     )
 
     if (message) {

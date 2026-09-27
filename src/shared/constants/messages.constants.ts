@@ -2,6 +2,9 @@
 // acá evita tener el mismo texto (con pequeñas variaciones) repetido en
 // distintos casos de uso.
 export const NOTIFICATION_MESSAGES = {
+  confirmationRequested: (childFirstName: string, dateLabel: string, timeLabel: string): string =>
+    `${childFirstName} tiene un viaje programado el ${dateLabel} a las ${timeLabel}. Respondé "Confirmar" o "Cancelar".`,
+
   approachingPickup: (childFirstName: string, approxBlocks: number): string => {
     const blocks = Math.max(1, Math.round(approxBlocks))
     const unit = blocks === 1 ? 'cuadra' : 'cuadras'

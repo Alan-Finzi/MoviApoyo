@@ -1,4 +1,7 @@
 import { DriverStatus } from '@/domain/enums/DriverStatus'
+import { PassengerBloodType } from '@/domain/enums/PassengerBloodType'
+import { PassengerSex } from '@/domain/enums/PassengerSex'
+import { PassengerStatus } from '@/domain/enums/PassengerStatus'
 import { ProximityCriterion } from '@/domain/enums/ProximityCriterion'
 import { TripStatus } from '@/domain/enums/TripStatus'
 import { VehicleStatus } from '@/domain/enums/VehicleStatus'
@@ -69,22 +72,32 @@ const SCHOOL_ADDRESS = {
   coordinates: { latitude: -34.618, longitude: -58.39 },
 }
 
+const PASSENGER_SEED_TIMESTAMP = new Date('2026-01-15T12:00:00.000Z').toISOString()
+
 export const passengersSeed: Passenger[] = [
   {
     id: 'passenger-1',
     firstName: 'Juan',
     lastName: 'Pérez',
+    birthDate: '2015-03-12',
+    sex: PassengerSex.MALE,
     homeAddress: {
       street: 'Av. Rivadavia 1234',
       coordinates: { latitude: -34.605, longitude: -58.382 },
     },
     destinationAddress: SCHOOL_ADDRESS,
     guardianId: 'guardian-1',
+    status: PassengerStatus.ACTIVE,
+    operationalNotes: 'Usa silla de ruedas plegable, se traslada en el asiento trasero.',
+    createdAt: PASSENGER_SEED_TIMESTAMP,
+    updatedAt: PASSENGER_SEED_TIMESTAMP,
   },
   {
     id: 'passenger-2',
     firstName: 'Sofía',
     lastName: 'Díaz',
+    birthDate: '2011-07-22',
+    sex: PassengerSex.FEMALE,
     homeAddress: {
       street: 'Calle Lavalle 900',
       coordinates: { latitude: -34.595, longitude: -58.4 },
@@ -94,22 +107,33 @@ export const passengersSeed: Passenger[] = [
       coordinates: { latitude: -34.61, longitude: -58.41 },
     },
     guardianId: 'guardian-2',
+    status: PassengerStatus.ACTIVE,
+    operationalNotes: 'Viaja siempre con su mochila de comunicación.',
+    createdAt: PASSENGER_SEED_TIMESTAMP,
+    updatedAt: PASSENGER_SEED_TIMESTAMP,
   },
   {
     id: 'passenger-3',
     firstName: 'Mateo',
     lastName: 'Fernández',
+    birthDate: '2013-11-02',
+    sex: PassengerSex.MALE,
     homeAddress: {
       street: 'Pasaje Los Andes 45',
       coordinates: { latitude: -34.63, longitude: -58.37 },
     },
     destinationAddress: SCHOOL_ADDRESS,
     guardianId: 'guardian-3',
+    status: PassengerStatus.ACTIVE,
+    createdAt: PASSENGER_SEED_TIMESTAMP,
+    updatedAt: PASSENGER_SEED_TIMESTAMP,
   },
   {
     id: 'passenger-4',
     firstName: 'Valentina',
     lastName: 'Ramírez',
+    birthDate: '2009-05-30',
+    sex: PassengerSex.FEMALE,
     homeAddress: {
       street: 'Calle Belgrano 210',
       coordinates: { latitude: -34.58, longitude: -58.395 },
@@ -119,6 +143,9 @@ export const passengersSeed: Passenger[] = [
       coordinates: { latitude: -34.61, longitude: -58.41 },
     },
     guardianId: 'guardian-4',
+    status: PassengerStatus.INACTIVE,
+    createdAt: PASSENGER_SEED_TIMESTAMP,
+    updatedAt: PASSENGER_SEED_TIMESTAMP,
   },
 ]
 
@@ -126,22 +153,30 @@ export const passengerSensitiveInfoSeed: Record<string, PassengerSensitiveInfo> 
   'passenger-1': {
     passengerId: 'passenger-1',
     documentNumber: '45123456',
+    bloodType: PassengerBloodType.O_POSITIVE,
     medicalNotes: 'Requiere silla de ruedas plegable, se traslada en el asiento trasero.',
     observations: 'Le gusta que lo saluden por su nombre al subir al vehículo.',
+    updatedAt: PASSENGER_SEED_TIMESTAMP,
   },
   'passenger-2': {
     passengerId: 'passenger-2',
     documentNumber: '46234567',
+    bloodType: PassengerBloodType.A_POSITIVE,
+    allergies: ['Penicilina'],
     observations: 'Viaja siempre con su mochila de comunicación.',
+    updatedAt: PASSENGER_SEED_TIMESTAMP,
   },
   'passenger-3': {
     passengerId: 'passenger-3',
     documentNumber: '47345678',
+    allergies: ['Frutos secos'],
     medicalNotes: 'Alergia a frutos secos.',
+    updatedAt: PASSENGER_SEED_TIMESTAMP,
   },
   'passenger-4': {
     passengerId: 'passenger-4',
     documentNumber: '48456789',
+    updatedAt: PASSENGER_SEED_TIMESTAMP,
   },
 }
 

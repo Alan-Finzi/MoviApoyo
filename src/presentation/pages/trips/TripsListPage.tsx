@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { Link } from 'react-router-dom'
 
+import { useAuth } from '@/app/providers/AuthProvider'
 import type { TripListItemDto } from '@/application/dto/TripListItemDto'
 import { getDriverFullName } from '@/domain/entities/Driver'
 import { getPassengerFullName } from '@/domain/entities/Passenger'
@@ -61,6 +62,7 @@ const columns: readonly TableColumn<TripListItemDto>[] = [
 ]
 
 export function TripsListPage() {
+  const { user } = useAuth()
   const trips = useTrips()
   const passengers = usePassengers()
   const drivers = useDrivers()
@@ -135,6 +137,7 @@ export function TripsListPage() {
           passengerOptions={passengerOptions}
           driverOptions={driverOptions}
           vehicleOptions={vehicleOptions}
+          registeredBy={user.fullName}
           onRegistered={() => {
             setIsModalOpen(false)
             trips.reload()

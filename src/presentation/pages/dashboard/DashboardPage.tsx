@@ -1,4 +1,14 @@
-import { AlertTriangle, CalendarClock, CarFront, Clock3 } from 'lucide-react'
+import {
+  AlertTriangle,
+  Ban,
+  CalendarClock,
+  CarFront,
+  CheckCircle2,
+  Clock3,
+  Hourglass,
+  Siren,
+  UserX,
+} from 'lucide-react'
 
 import { EmptyState } from '@/presentation/components/EmptyState'
 import { ErrorState } from '@/presentation/components/ErrorState'
@@ -37,9 +47,21 @@ export function DashboardPage() {
             tone="info"
           />
           <StatCard
+            value={summary.state.data.tripsUpcoming}
+            label="Pendientes de salir"
+            icon={<Hourglass size={20} aria-hidden="true" />}
+            tone="neutral"
+          />
+          <StatCard
             value={summary.state.data.tripsInProgress}
             label="En curso"
             icon={<CarFront size={20} aria-hidden="true" />}
+            tone="success"
+          />
+          <StatCard
+            value={summary.state.data.tripsCompleted}
+            label="Finalizados"
+            icon={<CheckCircle2 size={20} aria-hidden="true" />}
             tone="success"
           />
           <StatCard
@@ -53,6 +75,24 @@ export function DashboardPage() {
             label="Incidentes"
             icon={<AlertTriangle size={20} aria-hidden="true" />}
             tone="danger"
+          />
+          <StatCard
+            value={summary.state.data.emergencies}
+            label="Emergencias"
+            icon={<Siren size={20} aria-hidden="true" />}
+            tone="danger"
+          />
+          <StatCard
+            value={summary.state.data.tripsCancelled}
+            label="Cancelados"
+            icon={<Ban size={20} aria-hidden="true" />}
+            tone="neutral"
+          />
+          <StatCard
+            value={summary.state.data.tripsNotCompleted}
+            label="No realizados"
+            icon={<UserX size={20} aria-hidden="true" />}
+            tone="neutral"
           />
         </div>
       )}

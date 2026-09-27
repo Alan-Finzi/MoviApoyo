@@ -3,7 +3,11 @@ import { describe, expect, it } from 'vitest'
 import type { Trip } from '@/domain/entities/Trip'
 import { TripStatus } from '@/domain/enums/TripStatus'
 
-import { canTransitionTripStatus, resolveHappyPathStatus } from './TripStatusMachine'
+import {
+  canTransitionTripStatus,
+  isTerminalTripStatus,
+  resolveHappyPathStatus,
+} from './TripStatusMachine'
 
 function buildTrip(overrides: Partial<Trip> = {}): Trip {
   return {
@@ -27,8 +31,19 @@ function buildTrip(overrides: Partial<Trip> = {}): Trip {
 }
 
 describe('canTransitionTripStatus', () => {
-  it('permite pasar de PROGRAMADO a EN_CAMINO_AL_DOMICILIO', () => {
-    expect(canTransitionTripStatus(TripStatus.SCHEDULED, TripStatus.ON_THE_WAY)).toBe(true)
+  it('permite pasar de PROGRAMADO a CONFIRMACION_PENDIENTE', () => {
+    expect(canTransitionTripStatus(TripStatus.SCHEDULED, TripStatus.CONFIRMATION_PENDING)).toBe(
+      true,
+    )
+  })
+
+  it('no permite saltar de PROGRAMADO directo a EN_CAMINO_AL_DOMICILIO', () => {
+    expect(canTransitionTripStatus(TripStatus.SCHEDULED, TripStatus.ON_THE_WAY)).toBe(false)
+  })
+
+  it('permite avanzar CONFIRMADO -> CHOFER_ACEPTO -> EN_CAMINO_AL_DOMICILIO', () => {
+    expect(canTransitionTripStatus(TripStatus.CONFIRMED, TripStatus.DRIVER_ACCEPTED)).toBe(true)
+    expect(canTransitionTripStatus(TripStatus.DRIVER_ACCEPTED, TripStatus.ON_THE_WAY)).toBe(true)
   })
 
   it('no permite saltar de PROGRAMADO a FINALIZADO', () => {
@@ -41,6 +56,32 @@ describe('canTransitionTripStatus', () => {
 
   it('no permite salir de FINALIZADO', () => {
     expect(canTransitionTripStatus(TripStatus.COMPLETED, TripStatus.ON_THE_WAY)).toBe(false)
+  })
+
+  it('separa la llegada al destino de la finalización (regresión: antes saltaba directo)', () => {
+    expect(canTransitionTripStatus(TripStatus.NEAR_DESTINATION, TripStatus.COMPLETED)).toBe(false)
+    expect(
+      canTransitionTripStatus(TripStatus.NEAR_DESTINATION, TripStatus.ARRIVED_AT_DESTINATION),
+    ).toBe(true)
+    expect(canTransitionTripStatus(TripStatus.ARRIVED_AT_DESTINATION, TripStatus.COMPLETED)).toBe(
+      true,
+    )
+  })
+})
+
+describe('isTerminalTripStatus', () => {
+  it('marca como terminales los estados sin transiciones salientes', () => {
+    expect(isTerminalTripStatus(TripStatus.COMPLETED)).toBe(true)
+    expect(isTerminalTripStatus(TripStatus.CANCELLED)).toBe(true)
+    expect(isTerminalTripStatus(TripStatus.NO_SHOW)).toBe(true)
+    expect(isTerminalTripStatus(TripStatus.RESCHEDULED)).toBe(true)
+    expect(isTerminalTripStatus(TripStatus.NOT_COMPLETED)).toBe(true)
+  })
+
+  it('no marca como terminales los estados que todavía pueden avanzar', () => {
+    expect(isTerminalTripStatus(TripStatus.SCHEDULED)).toBe(false)
+    expect(isTerminalTripStatus(TripStatus.IN_TRANSIT)).toBe(false)
+    expect(isTerminalTripStatus(TripStatus.INCIDENT)).toBe(false)
   })
 })
 

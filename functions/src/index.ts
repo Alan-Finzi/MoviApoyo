@@ -7,6 +7,8 @@ import { processWhatsAppWebhook, type WhatsAppWebhookPayload } from './whatsappW
 
 initializeApp()
 
+export { sendGuardianNotification } from './sendGuardianNotification'
+
 // Se configura acá y en Meta for Developers con el mismo valor (ver
 // docs/firebase.md en la raíz del repo). Sirve solo para el handshake
 // inicial de verificación del webhook — no autentica los mensajes que

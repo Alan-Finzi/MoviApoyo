@@ -1,7 +1,7 @@
 import { NotificationType } from '@/domain/enums/NotificationType'
 import { TripStatus } from '@/domain/enums/TripStatus'
 import { NOTIFICATION_MESSAGES } from '@/shared/constants/messages.constants'
-import { formatTime } from '@/shared/utils/date'
+import { formatDate, formatTime } from '@/shared/utils/date'
 
 import { TripEventType } from '../entities/TripEvent'
 
@@ -11,16 +11,23 @@ import { TripEventType } from '../entities/TripEvent'
 // utilidades sin dependencias de framework, no en Infrastructure.
 const STATUS_TO_EVENT_TYPE: Record<TripStatus, TripEventType> = {
   [TripStatus.SCHEDULED]: TripEventType.SCHEDULED,
+  [TripStatus.CONFIRMATION_PENDING]: TripEventType.CONFIRMATION_REQUESTED,
+  [TripStatus.CONFIRMED]: TripEventType.CONFIRMED,
+  [TripStatus.DRIVER_ACCEPTED]: TripEventType.DRIVER_ACCEPTED,
   [TripStatus.ON_THE_WAY]: TripEventType.DRIVER_STARTED,
   [TripStatus.NEAR_HOME]: TripEventType.NEAR_HOME,
   [TripStatus.ARRIVING]: TripEventType.NEAR_HOME,
   [TripStatus.PICKED_UP]: TripEventType.PICKED_UP,
   [TripStatus.IN_TRANSIT]: TripEventType.IN_TRANSIT,
   [TripStatus.NEAR_DESTINATION]: TripEventType.NEAR_DESTINATION,
+  [TripStatus.ARRIVED_AT_DESTINATION]: TripEventType.ARRIVED_AT_DESTINATION,
   [TripStatus.COMPLETED]: TripEventType.DELIVERED,
   [TripStatus.DELAYED]: TripEventType.DELAYED,
   [TripStatus.INCIDENT]: TripEventType.INCIDENT,
   [TripStatus.CANCELLED]: TripEventType.CANCELLED,
+  [TripStatus.NO_SHOW]: TripEventType.NO_SHOW,
+  [TripStatus.RESCHEDULED]: TripEventType.RESCHEDULED,
+  [TripStatus.NOT_COMPLETED]: TripEventType.NOT_COMPLETED,
 }
 
 export function getEventTypeForStatus(status: TripStatus): TripEventType {
@@ -33,8 +40,15 @@ export function getNotificationMessageForStatus(
   status: TripStatus,
   childFirstName: string,
   estimatedArrivalIso: string,
+  scheduledDepartureIso: string,
 ): string | null {
   switch (status) {
+    case TripStatus.CONFIRMATION_PENDING:
+      return NOTIFICATION_MESSAGES.confirmationRequested(
+        childFirstName,
+        formatDate(scheduledDepartureIso),
+        formatTime(scheduledDepartureIso),
+      )
     case TripStatus.ARRIVING:
       return NOTIFICATION_MESSAGES.arrivingAtHome()
     case TripStatus.PICKED_UP:
@@ -52,6 +66,8 @@ export function getNotificationMessageForStatus(
 
 export function getNotificationTypeForStatus(status: TripStatus): NotificationType {
   switch (status) {
+    case TripStatus.CONFIRMATION_PENDING:
+      return NotificationType.CONFIRMATION_REQUESTED
     case TripStatus.PICKED_UP:
       return NotificationType.CHILD_PICKED_UP
     case TripStatus.COMPLETED:
