@@ -39,6 +39,7 @@ interface TripDocument {
   readonly actualDepartureAt?: string | null
   readonly actualArrivalAt?: string | null
   readonly sourceDestinationId?: string
+  readonly recurrenceGroupId?: string
 }
 
 function fromFirestore(id: string, data: DocumentData): Trip {
@@ -60,6 +61,7 @@ function fromFirestore(id: string, data: DocumentData): Trip {
     actualDepartureAt: raw.actualDepartureAt ?? null,
     actualArrivalAt: raw.actualArrivalAt ?? null,
     sourceDestinationId: raw.sourceDestinationId,
+    recurrenceGroupId: raw.recurrenceGroupId,
   }
 }
 

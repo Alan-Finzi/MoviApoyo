@@ -17,4 +17,9 @@ export interface TripListItemDto {
   readonly vehiclePlate: string
   readonly status: TripStatus
   readonly delayMinutes: number
+  // Ver comentario en Trip.recurrenceGroupId/sourceDestinationId — cualquiera
+  // de los dos que venga (nunca los dos a la vez) agrupa varios traslados
+  // como generados juntos, para no ocupar toda la lista (ver TripsListPage).
+  readonly recurrenceGroupId?: string
+  readonly sourceDestinationId?: string
 }

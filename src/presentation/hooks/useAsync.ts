@@ -18,7 +18,18 @@ export function useAsync<T>(loader: () => Promise<T>, deps: readonly unknown[]):
 
   useEffect(() => {
     let cancelled = false
-    setState({ status: 'loading' })
+    // Si ya hay datos en pantalla, un refetch (ej. useLiveTripUpdates
+    // reaccionando a la simulación, o el reload() de otra pantalla) no debe
+    // pasar por "loading": eso desmonta la página entera —incluyendo un
+    // modal abierto, como el de "Registrar incidente"— y el coordinador
+    // pierde lo que estaba escribiendo. Solo la carga inicial (o un reload
+    // después de error/vacío, sin nada que conservar en pantalla) muestra el
+    // spinner.
+    setState((previous) =>
+      previous.status === 'success' || previous.status === 'empty'
+        ? previous
+        : { status: 'loading' },
+    )
 
     loader()
       .then((data) => {

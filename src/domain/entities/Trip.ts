@@ -34,4 +34,11 @@ export interface Trip {
   // independiente: cambiarle el estado, el chofer o el vehículo nunca afecta
   // a la plantilla ni a otros traslados generados desde ella.
   readonly sourceDestinationId?: string
+  // Id compartido por todos los traslados generados de una sola vez desde
+  // la recurrencia de TripForm (ver TripForm.tsx) — distinto de
+  // sourceDestinationId, que es para los generados desde un
+  // PassengerDestination (ver GenerateRecurringTripsUseCase). Sirve solo
+  // para agruparlos en TripsListPage; cada uno sigue siendo 100%
+  // independiente (mismo criterio que sourceDestinationId).
+  readonly recurrenceGroupId?: string
 }

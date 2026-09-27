@@ -59,6 +59,8 @@ export function getNotificationMessageForStatus(
       return NOTIFICATION_MESSAGES.delivered(childFirstName)
     case TripStatus.DELAYED:
       return NOTIFICATION_MESSAGES.delayed(formatTime(estimatedArrivalIso))
+    case TripStatus.NO_SHOW:
+      return NOTIFICATION_MESSAGES.noShow(childFirstName)
     default:
       return null
   }
@@ -76,6 +78,8 @@ export function getNotificationTypeForStatus(status: TripStatus): NotificationTy
       return NotificationType.DELAY
     case TripStatus.INCIDENT:
       return NotificationType.INCIDENT
+    case TripStatus.NO_SHOW:
+      return NotificationType.CHILD_ABSENT
     default:
       return NotificationType.VEHICLE_APPROACHING
   }

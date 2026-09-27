@@ -51,6 +51,8 @@ export class GetTripsUseCase {
           vehiclePlate: formatVehiclePlate(vehicle.licensePlate),
           status: trip.status,
           delayMinutes: trip.delayMinutes,
+          recurrenceGroupId: trip.recurrenceGroupId,
+          sourceDestinationId: trip.sourceDestinationId,
         }
       })
       .sort((a, b) => a.scheduledDeparture.localeCompare(b.scheduledDeparture))

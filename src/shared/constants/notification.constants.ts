@@ -11,6 +11,7 @@ export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
   [NotificationType.CHILD_PICKED_UP]: 'Paciente recogido',
   [NotificationType.CHILD_DELIVERED]: 'Paciente entregado',
   [NotificationType.CONFIRMATION_REQUESTED]: 'Confirmación solicitada',
+  [NotificationType.CHILD_ABSENT]: 'Paciente ausente',
 }
 
 // Colores del centro de notificaciones (rule 14): 🟢🟡🔴🔵🟣.
@@ -21,6 +22,7 @@ export const NOTIFICATION_TYPE_TONE: Record<NotificationType, StatusTone> = {
   [NotificationType.CHILD_PICKED_UP]: 'info',
   [NotificationType.CHILD_DELIVERED]: 'info',
   [NotificationType.CONFIRMATION_REQUESTED]: 'warning',
+  [NotificationType.CHILD_ABSENT]: 'danger',
 }
 
 export const NOTIFICATION_STATUS_LABELS: Record<NotificationStatus, string> = {

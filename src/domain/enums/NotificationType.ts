@@ -5,6 +5,7 @@ export const NotificationType = {
   CHILD_PICKED_UP: 'NINO_RECOGIDO',
   CHILD_DELIVERED: 'NINO_ENTREGADO',
   CONFIRMATION_REQUESTED: 'CONFIRMACION_SOLICITADA',
+  CHILD_ABSENT: 'PACIENTE_AUSENTE',
 } as const
 
 export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]

@@ -65,13 +65,14 @@ Respuesta de WhatsApp (confirmación al chofer, o el dato pedido al padre)
 
 ## Flujos por chofer
 
-| Acción del chofer             | Mecanismo de WhatsApp                               | Use Case que dispara                                  |
-| ----------------------------- | --------------------------------------------------- | ----------------------------------------------------- |
-| Iniciar el traslado           | Botón de respuesta rápida ("Iniciar viaje")         | `StartTripUseCase`                                    |
-| Compartir ubicación           | Función nativa "Compartir ubicación" de WhatsApp    | _(nuevo, ver abajo)_ actualiza `Trip.currentLocation` |
-| Confirmar que recogió al niño | Botón ("Recogido")                                  | `UpdateTripStatusUseCase` → `NIÑO_RECOGIDO`           |
-| Confirmar entrega en destino  | Botón ("Entregado")                                 | `UpdateTripStatusUseCase` → `FINALIZADO`              |
-| Reportar un incidente         | Lista de opciones (tipos de `IncidentType`) + texto | `RegisterIncidentUseCase`                             |
+| Acción del chofer                | Mecanismo de WhatsApp                                        | Use Case que dispara                          |
+| --------------------------------- | ------------------------------------------------------------- | ---------------------------------------------- |
+| Iniciar el traslado                | Botón de respuesta rápida ("Iniciar viaje")                   | `StartTripUseCase`                             |
+| Compartir ubicación                | Función nativa "Compartir ubicación" de WhatsApp               | _(nuevo, ver abajo)_ actualiza `Trip.currentLocation` |
+| Confirmar que llegó al domicilio   | Pregunta "¿Llegaste?" con botones Sí/No                        | `UpdateTripStatusUseCase` → `LLEGANDO` (si contesta que no, se lo vuelve a preguntar más tarde) |
+| Confirmar que recogió al paciente  | Segunda pregunta "¿Retiraste a X?" con botones Sí/No, apenas confirma que llegó | `UpdateTripStatusUseCase` → `NIÑO_RECOGIDO` (Sí) o `PACIENTE_AUSENTE` (No) |
+| Confirmar entrega en destino       | Botón ("Entregado")                                            | `UpdateTripStatusUseCase` → `FINALIZADO`       |
+| Reportar un incidente              | Lista de opciones (tipos de `IncidentType`) + texto            | `RegisterIncidentUseCase`                      |
 
 **Por qué botones/listas y no texto libre**: WhatsApp Business API soporta
 mensajes interactivos (botones, listas) nativamente. Usarlos en vez de

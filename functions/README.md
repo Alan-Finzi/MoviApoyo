@@ -54,19 +54,30 @@ requiere un índice compuesto (ver `firestore.indexes.json`).
   idempotencia por id de mensaje (`dedupe.ts` — Meta puede reenviar el mismo
   webhook varias veces).
 - Chofer: ubicación por WhatsApp (actualiza `Trip.currentLocation`), y
-  botones de "Iniciar viaje" / "Recogido" / "Entregado" / "Problema" /
-  "Emergencia" (`whatsappWebhook.ts`), que validan la transición contra la
-  misma tabla que usa la web (`tripStatusMachine.ts`, espejo de
-  `src/domain/services/TripStatusMachine.ts`).
+  botones de "Iniciar viaje" / "Entregado" / "Problema" / "Emergencia"
+  (`whatsappWebhook.ts`), que validan la transición contra la misma tabla que
+  usa la web (`tripStatusMachine.ts`, espejo de
+  `src/domain/services/TripStatusMachine.ts`). Llegar al domicilio y recoger
+  al paciente se confirma en dos preguntas Sí/No separadas en vez de un solo
+  botón ("¿Llegaste?" → si contesta que no, no pasa nada; si contesta que sí
+  pasa a "Llegando" y pregunta "¿Retiraste al paciente?" → "No" deja el
+  traslado como `PACIENTE_AUSENTE`).
 - Familiar: confirmar o cancelar un traslado por botones; cancelar pide el
   motivo en un mensaje de texto aparte (`conversationState.ts`, un paso de
   conversación, ver diseño en `docs/whatsapp-bot.md`).
+- Avisos automáticos al familiar (cerca del domicilio, recogido, en camino,
+  entregado, paciente ausente) también cuando el traslado avanza acá, no
+  solo desde la web — `updateTripStatus` en `whatsappWebhook.ts` escribe en
+  `notifications` usando `tripNotificationRules.ts` (espejo de
+  `src/domain/services/TripNotificationRules.ts`), igual que
+  `UpdateTripStatusUseCase` del lado de la web.
 - Envío real de WhatsApp (`whatsappClient.ts`, Graph API de Meta) — corre
   server-side a propósito (nunca en el navegador, para no exponer el access
   token). El trigger `sendGuardianNotification` escucha la colección
   `notifications` (la misma que ya escribía `SendNotificationUseCase` desde
-  la web) y manda el mensaje real cuando aparece un documento nuevo — la web
-  no sabe ni necesita saber que este trigger existe.
+  la web, y que ahora también escribe este webhook) y manda el mensaje real
+  cuando aparece un documento nuevo — ni la web ni el webhook saben ni
+  necesitan saber que este trigger existe.
 
 ## Qué falta (ver docs/whatsapp-bot.md para el diseño completo)
 

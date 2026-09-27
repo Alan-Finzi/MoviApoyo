@@ -46,11 +46,18 @@ export function formatIsoDate(isoDate: string): string {
   return `${day}/${month}/${year}`
 }
 
+// "en-CA" da directamente el formato "yyyy-mm-dd" (a diferencia de "es-AR"),
+// sin tener que reordenar día/mes/año a mano.
+export function toIsoDate(iso: string): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: DEFAULT_TIMEZONE }).format(new Date(iso))
+}
+
+export function getTodayIsoDate(): string {
+  return toIsoDate(new Date().toISOString())
+}
+
 // Misma lógica de comparación por string "yyyy-mm-dd" (ordena igual que por
 // fecha real) para no depender de zona horaria.
 export function isPastDate(isoDate: string): boolean {
-  const todayIsoDate = new Intl.DateTimeFormat('en-CA', { timeZone: DEFAULT_TIMEZONE }).format(
-    new Date(),
-  )
-  return isoDate < todayIsoDate
+  return isoDate < getTodayIsoDate()
 }

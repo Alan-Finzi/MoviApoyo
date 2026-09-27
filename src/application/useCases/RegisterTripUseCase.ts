@@ -25,6 +25,9 @@ export interface RegisterTripInput {
   // ignorar al guardar (rule pedida: no bloquear, pero que la excepción
   // quede auditada). Si viene vacío/ausente, no se registra nada extra.
   readonly overriddenConflicts?: readonly string[]
+  // Ver comentario en Trip.recurrenceGroupId — lo arma TripForm cuando el
+  // coordinador crea varios traslados recurrentes de una sola vez.
+  readonly recurrenceGroupId?: string
 }
 
 // Alta de traslado desde el panel de admin. El origen y el destino se
@@ -74,6 +77,7 @@ export class RegisterTripUseCase {
       notifiedMilestones: [],
       actualDepartureAt: null,
       actualArrivalAt: null,
+      recurrenceGroupId: input.recurrenceGroupId,
     })
 
     let updatedTrip = await this.tripRepository.appendTripEvent(trip.id, {

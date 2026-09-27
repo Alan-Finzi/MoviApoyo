@@ -7,6 +7,7 @@ import {
 } from './conversationState'
 import { tryMarkMessageAsProcessed } from './dedupe'
 import { identifySender } from './identity'
+import { getGuardianNotificationMessage, getGuardianNotificationType } from './tripNotificationRules'
 import { canTransition, eventTypeForStatus, TripStatus } from './tripStatusMachine'
 import { sendWhatsAppButtons, sendWhatsAppText, type WhatsAppButton } from './whatsappClient'
 
@@ -124,10 +125,18 @@ async function getTrip(tripId: string): Promise<TripSnapshot | null> {
   return data ? tripSnapshotFromDoc(doc.id, data) : null
 }
 
-async function getPassengerFirstName(passengerId: string): Promise<string> {
+interface PassengerSnapshot {
+  readonly firstName: string
+  readonly guardianId: string | null
+}
+
+async function getPassenger(passengerId: string): Promise<PassengerSnapshot> {
   const doc = await getFirestore().collection('passengers').doc(passengerId).get()
-  const firstName = doc.data()?.firstName as string | undefined
-  return firstName ?? 'el paciente'
+  const data = doc.data()
+  return {
+    firstName: (data?.firstName as string | undefined) ?? 'el paciente',
+    guardianId: (data?.guardianId as string | undefined) ?? null,
+  }
 }
 
 async function appendTripEvent(
@@ -153,11 +162,14 @@ async function appendTripEvent(
 }
 
 // Espejo de UpdateTripStatusUseCase (src/application/useCases): valida la
-// transición contra la misma tabla y deja el mismo tipo de evento de
-// auditoría. No dispara notificaciones al familiar acá — eso lo hace el
-// trigger de Firestore en index.ts cuando se crea un documento en
-// `notifications`, y este webhook no escribe ahí directamente (ver
-// comentario en index.ts).
+// transición contra la misma tabla, deja el mismo tipo de evento de
+// auditoría y, si el estado lo amerita (ver tripNotificationRules.ts),
+// escribe en `notifications` — igual que hace UpdateTripStatusUseCase del
+// lado de la web — para que sendGuardianNotification (ver
+// sendGuardianNotification.ts) la mande por WhatsApp al familiar. Antes de
+// este cambio, un traslado que avanzaba solo por acá (chofer por WhatsApp)
+// nunca avisaba al familiar; el aviso solo salía si un coordinador tocaba
+// algo en la web.
 async function updateTripStatus(
   trip: TripSnapshot,
   nextStatus: TripStatus,
@@ -181,6 +193,23 @@ async function updateTripStatus(
     actor,
     reason,
   })
+
+  const passenger = await getPassenger(trip.passengerId)
+  const message = getGuardianNotificationMessage(nextStatus, passenger.firstName)
+  if (message && passenger.guardianId) {
+    await getFirestore()
+      .collection('notifications')
+      .add({
+        tripId: trip.id,
+        guardianId: passenger.guardianId,
+        type: getGuardianNotificationType(nextStatus),
+        channel: 'WHATSAPP',
+        message,
+        status: 'ENVIADA',
+        createdAt: new Date().toISOString(),
+      })
+  }
+
   return true
 }
 
@@ -209,10 +238,26 @@ async function advanceAlongHappyPath(
   return current
 }
 
-function buttonsForDriverTrip(trip: TripSnapshot): {
+// Pregunta "¿Retiraste a X?" (ver handleDriverMessage, acción ARRIVED_YES) —
+// aparte para poder mandarla también apenas el chofer confirma que llegó,
+// no solo cuando escribe de nuevo.
+function pickupQuestionButtons(
+  trip: TripSnapshot,
+  childFirstName: string,
+): { readonly text: string; readonly buttons: readonly WhatsAppButton[] } {
+  return {
+    text: `¿Retiraste a ${childFirstName}?`,
+    buttons: [
+      { id: `PICKUP_YES:${trip.id}`, title: 'Sí, lo retiré' },
+      { id: `PICKUP_NO:${trip.id}`, title: 'No salió' },
+    ],
+  }
+}
+
+async function buttonsForDriverTrip(trip: TripSnapshot): Promise<{
   readonly text: string
   readonly buttons: readonly WhatsAppButton[]
-} {
+}> {
   if (
     trip.status === TripStatus.SCHEDULED ||
     trip.status === TripStatus.CONFIRMATION_PENDING ||
@@ -230,17 +275,26 @@ function buttonsForDriverTrip(trip: TripSnapshot): {
   }
   if (
     trip.status === TripStatus.ON_THE_WAY ||
-    trip.status === TripStatus.NEAR_HOME ||
-    trip.status === TripStatus.ARRIVING
+    trip.status === TripStatus.NEAR_HOME
   ) {
+    // Antes esto era un único botón "Recogido" que saltaba directo a
+    // recogido. Ahora se confirma en dos pasos explícitos (rule pedida:
+    // "que responda llegaste SI o NO, retiraste al paciente SI o NO") — ver
+    // ARRIVED_YES/ARRIVED_NO/PICKUP_YES/PICKUP_NO en handleDriverMessage.
+    const passenger = await getPassenger(trip.passengerId)
     return {
-      text: 'Viaje en curso hacia el domicilio. ¿Qué querés hacer?',
+      text: `¿Llegaste al domicilio de ${passenger.firstName}?`,
       buttons: [
-        { id: `ADVANCE_PICKED_UP:${trip.id}`, title: 'Recogido' },
+        { id: `ARRIVED_YES:${trip.id}`, title: 'Sí' },
+        { id: `ARRIVED_NO:${trip.id}`, title: 'No, todavía' },
         { id: `REPORT_PROBLEM:${trip.id}`, title: 'Problema' },
-        { id: `REPORT_EMERGENCY:${trip.id}`, title: 'Emergencia' },
       ],
     }
+  }
+  if (trip.status === TripStatus.ARRIVING) {
+    // Ya confirmó que llegó — lo único que falta es la segunda pregunta.
+    const passenger = await getPassenger(trip.passengerId)
+    return pickupQuestionButtons(trip, passenger.firstName)
   }
   return {
     text: 'Viaje en curso hacia el destino. ¿Qué querés hacer?',
@@ -284,9 +338,28 @@ async function handleDriverMessage(driverId: string, message: WhatsAppMessage): 
       await sendWhatsAppText(message.from, 'Listo, viaje iniciado.')
       return
     }
-    if (action === 'ADVANCE_PICKED_UP') {
+    if (action === 'ARRIVED_YES') {
+      const updated = await advanceAlongHappyPath(trip, TripStatus.ARRIVING, `Chofer (${driverId})`)
+      const passenger = await getPassenger(updated.passengerId)
+      const { text, buttons } = pickupQuestionButtons(updated, passenger.firstName)
+      await sendWhatsAppButtons(message.from, text, buttons)
+      return
+    }
+    if (action === 'ARRIVED_NO') {
+      await sendWhatsAppText(message.from, 'Dale, avisame apenas llegues.')
+      return
+    }
+    if (action === 'PICKUP_YES') {
       await advanceAlongHappyPath(trip, TripStatus.PICKED_UP, `Chofer (${driverId})`)
       await sendWhatsAppText(message.from, 'Listo, registrado como recogido.')
+      return
+    }
+    if (action === 'PICKUP_NO') {
+      await updateTripStatus(trip, TripStatus.NO_SHOW, `Chofer (${driverId})`)
+      await sendWhatsAppText(
+        message.from,
+        'Entendido, registramos que el paciente no salió. Avisamos al familiar y a un coordinador.',
+      )
       return
     }
     if (action === 'ADVANCE_COMPLETED') {
@@ -331,7 +404,7 @@ async function handleDriverMessage(driverId: string, message: WhatsAppMessage): 
     await sendWhatsAppText(message.from, 'No tenés ningún viaje activo en este momento.')
     return
   }
-  const { text, buttons } = buttonsForDriverTrip(trip)
+  const { text, buttons } = await buttonsForDriverTrip(trip)
   await sendWhatsAppButtons(message.from, text, buttons)
 }
 
@@ -382,7 +455,7 @@ async function handleGuardianMessage(
       `${pendingCancellation.guardianFullName} (${pendingCancellation.relationship})`,
       message.text.body.trim(),
     )
-    const passengerFirstName = await getPassengerFirstName(trip.passengerId)
+    const passengerFirstName = (await getPassenger(trip.passengerId)).firstName
     await sendWhatsAppText(
       message.from,
       applied
@@ -402,16 +475,19 @@ async function handleGuardianMessage(
 //
 // Implementado: identificación de chofer/familiar, idempotencia por id de
 // mensaje, ubicación del chofer, botones de estado del chofer (iniciar/
-// recogido/entregado/problema/emergencia) y confirmación/cancelación del
-// familiar (con motivo obligatorio para cancelar).
+// llegué+retiré en dos preguntas Sí-No/entregado/problema/emergencia),
+// confirmación/cancelación del familiar (con motivo obligatorio para
+// cancelar) y aviso al familiar por WhatsApp en los mismos hitos que ya
+// notifica la web (cerca del domicilio, recogido, en camino, entregado,
+// paciente ausente — ver tripNotificationRules.ts).
 //
 // Todavía NO implementado (ver docs/whatsapp-bot.md): avance de estado por
 // proximidad real de GPS (cerca del domicilio/destino — hoy esos pasos
-// intermedios se saltean de una sola vez al tocar "Iniciar"/"Recogido"/
-// "Entregado", en vez de detectarse solos como en TripSimulationEngine), la
-// lista de tipos de incidente con descripción propia (hoy es un botón único
-// "Problema" con descripción genérica), y las consultas de los padres
-// ("¿dónde está mi hijo?").
+// intermedios se saltean de una sola vez al tocar "Iniciar"/"Sí, llegué", en
+// vez de detectarse solos como en TripSimulationEngine), la lista de tipos
+// de incidente con descripción propia (hoy es un botón único "Problema" con
+// descripción genérica), y las consultas de los padres ("¿dónde está mi
+// hijo?").
 export async function processWhatsAppWebhook(payload: WhatsAppWebhookPayload): Promise<void> {
   const messages = extractMessages(payload)
 

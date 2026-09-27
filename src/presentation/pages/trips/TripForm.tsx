@@ -184,6 +184,11 @@ export function TripForm({
     dates: readonly string[],
     forcedOverrides?: readonly string[],
   ): Promise<void> {
+    // Un id compartido por esta tanda, para poder agruparlos en la lista de
+    // traslados (ver Trip.recurrenceGroupId) — solo tiene sentido cuando se
+    // genera más de uno de una sola vez.
+    const recurrenceGroupId = dates.length > 1 ? crypto.randomUUID() : undefined
+
     for (const date of dates) {
       const { scheduledDeparture, estimatedArrival } = buildScheduleForDate(values, date)
 
@@ -216,6 +221,7 @@ export function TripForm({
         estimatedArrival,
         registeredBy,
         overriddenConflicts,
+        recurrenceGroupId,
       })
     }
   }

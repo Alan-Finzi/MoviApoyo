@@ -23,4 +23,7 @@ export const NOTIFICATION_MESSAGES = {
 
   delivered: (childFirstName: string): string =>
     `${childFirstName} llegó correctamente al destino.`,
+
+  noShow: (childFirstName: string): string =>
+    `El chofer llegó al domicilio pero ${childFirstName} no salió. Contactate con un coordinador si hace falta reprogramar el viaje.`,
 } as const
