@@ -1,13 +1,5 @@
-import * as logger from 'firebase-functions/logger'
-import { defineString } from 'firebase-functions/params'
+import type { Env } from './types'
 
-// Nunca en texto plano en el repo (ver README de esta carpeta): configurar
-// con `firebase functions:secrets:set WHATSAPP_ACCESS_TOKEN` /
-// `WHATSAPP_PHONE_NUMBER_ID` antes de desplegar. Sin esto, cualquier envío
-// falla — el resto del bot (recepción, transiciones de estado) sigue
-// funcionando igual, solo no llega la respuesta al usuario.
-const ACCESS_TOKEN = defineString('WHATSAPP_ACCESS_TOKEN')
-const PHONE_NUMBER_ID = defineString('WHATSAPP_PHONE_NUMBER_ID')
 const GRAPH_API_VERSION = 'v21.0'
 
 export interface WhatsAppButton {
@@ -16,22 +8,20 @@ export interface WhatsAppButton {
   readonly title: string
 }
 
-async function callGraphApi(body: Record<string, unknown>): Promise<void> {
-  const phoneNumberId = PHONE_NUMBER_ID.value()
-  const accessToken = ACCESS_TOKEN.value()
-  if (!phoneNumberId || !accessToken) {
-    logger.warn(
-      'WHATSAPP_ACCESS_TOKEN/WHATSAPP_PHONE_NUMBER_ID no configurados — no se envía nada (ver functions/README.md).',
+async function callGraphApi(env: Env, body: Record<string, unknown>): Promise<void> {
+  if (!env.WHATSAPP_PHONE_NUMBER_ID || !env.WHATSAPP_ACCESS_TOKEN) {
+    console.warn(
+      'WHATSAPP_ACCESS_TOKEN/WHATSAPP_PHONE_NUMBER_ID no configurados (wrangler secret put) — no se envía nada.',
     )
     return
   }
 
   const response = await fetch(
-    `https://graph.facebook.com/${GRAPH_API_VERSION}/${phoneNumberId}/messages`,
+    `https://graph.facebook.com/${GRAPH_API_VERSION}/${env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
     {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${accessToken}`,
+        Authorization: `Bearer ${env.WHATSAPP_ACCESS_TOKEN}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ messaging_product: 'whatsapp', ...body }),
@@ -45,8 +35,8 @@ async function callGraphApi(body: Record<string, unknown>): Promise<void> {
 }
 
 // Mensaje de texto simple (avisos, confirmaciones de una acción, etc.).
-export async function sendWhatsAppText(to: string, body: string): Promise<void> {
-  await callGraphApi({
+export async function sendWhatsAppText(env: Env, to: string, body: string): Promise<void> {
+  await callGraphApi(env, {
     to,
     type: 'text',
     text: { body },
@@ -57,6 +47,7 @@ export async function sendWhatsAppText(to: string, body: string): Promise<void> 
 // para las acciones del chofer y la confirmación del familiar en vez de
 // interpretar texto libre (rule del diseño original: evitar ambigüedad).
 export async function sendWhatsAppButtons(
+  env: Env,
   to: string,
   body: string,
   buttons: readonly WhatsAppButton[],
@@ -64,7 +55,7 @@ export async function sendWhatsAppButtons(
   if (buttons.length === 0 || buttons.length > 3) {
     throw new Error(`sendWhatsAppButtons acepta entre 1 y 3 botones, recibió ${buttons.length.toString()}.`)
   }
-  await callGraphApi({
+  await callGraphApi(env, {
     to,
     type: 'interactive',
     interactive: {

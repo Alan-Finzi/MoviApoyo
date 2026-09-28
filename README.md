@@ -37,12 +37,13 @@ incidentes, que también generan avisos. Todo queda registrado en un historial
 auditable, incluyendo los horarios reales de salida/llegada de cada viaje, para
 poder analizar después si conviene ajustar un horario programado.
 
-El backend es **Firebase** (Firestore + Cloud Functions — ver
-[`docs/firebase.md`](docs/firebase.md)). Mientras no configures tu propio
-proyecto de Firebase, la aplicación sigue funcionando **completamente con
-datos simulados**: un motor de simulación mueve los vehículos "en vivo" y
-dispara las notificaciones correspondientes, para poder ver el flujo completo
-sin depender de nada externo.
+El backend es **Firebase** (Firestore — ver
+[`docs/firebase.md`](docs/firebase.md)) más un Worker de Cloudflare para el
+bot de WhatsApp (ver [`workers/whatsapp-bot/`](workers/whatsapp-bot/)).
+Mientras no configures tu propio proyecto de Firebase, la aplicación sigue
+funcionando **completamente con datos simulados**: un motor de simulación
+mueve los vehículos "en vivo" y dispara las notificaciones correspondientes,
+para poder ver el flujo completo sin depender de nada externo.
 
 ## Arquitectura
 
@@ -69,8 +70,8 @@ Presentation → Application → Domain ← Infrastructure
 
 React 19 + TypeScript + Vite, React Router, CSS Modules con variables CSS
 (sistema de diseño propio), React Hook Form + Zod para formularios, Firebase
-(Firestore + Cloud Functions) como backend, ESLint + Prettier, Vitest +
-Testing Library.
+(Firestore) + Cloudflare Workers (bot de WhatsApp) como backend, ESLint +
+Prettier, Vitest + Testing Library.
 
 Se evitó deliberadamente sumar dependencias que no aportaban valor real acá:
 sin Axios (alcanza `fetch` + un `ApiClient` propio), sin Redux/Zustand (los
@@ -156,9 +157,9 @@ src/
 ├── presentation/   # componentes, layouts, páginas, hooks, estilos
 └── shared/         # constantes, utils, tipos, errores — sin dependencias de framework
 
-functions/          # Cloud Functions (proyecto Node aparte, ver functions/README.md)
+workers/whatsapp-bot/ # Bot de WhatsApp (Cloudflare Workers, proyecto Node aparte, ver su README.md)
 firestore.rules     # Reglas de seguridad de Firestore
-firebase.json       # Config del CLI de Firebase (hosting, functions, firestore)
+firebase.json       # Config del CLI de Firebase (hosting, firestore)
 ```
 
 ## Convenciones de código
@@ -221,7 +222,8 @@ API (u otro proveedor):
 
 Ver la guía completa en [`docs/firebase.md`](docs/firebase.md): cómo crear tu
 proyecto de Firebase, completar las variables `VITE_FIREBASE_*`, desplegar
-las reglas de Firestore y levantar las Cloud Functions. En resumen: cuando
+las reglas de Firestore y levantar el bot de WhatsApp (Cloudflare Workers,
+ver [`workers/whatsapp-bot/`](workers/whatsapp-bot/)). En resumen: cuando
 `VITE_FIREBASE_PROJECT_ID` está definido, el composition root
 (`app/providers/dependencies.ts`) arma automáticamente los repositorios
 sobre Firestore en vez de los Mock — no hay que tocar ningún Use Case, hook
@@ -248,12 +250,12 @@ avisos y pueden consultar el estado del traslado de la misma forma. Nadie de
 estos dos roles descarga ni ingresa a ninguna app — solo administradores y
 coordinadores usan este dashboard.
 
-Ya existe un scaffold del webhook (`functions/`) que identifica al chofer
-por su teléfono y actualiza la ubicación del traslado cuando comparte su
-ubicación por WhatsApp — pero todavía no está desplegado ni conectado a una
-cuenta real de WhatsApp Business API. El diseño completo del flujo (qué
-falta, qué Use Case dispara cada mensaje) está en
-[`docs/whatsapp-bot.md`](docs/whatsapp-bot.md).
+Ya existe un webhook implementado (`workers/whatsapp-bot/`, Cloudflare
+Workers) que identifica al chofer por su teléfono, actualiza la ubicación
+del traslado cuando comparte su ubicación por WhatsApp, y manda los avisos
+salientes — pero todavía no está conectado a una cuenta real de WhatsApp
+Business API. El diseño completo del flujo (qué falta, qué dispara cada
+mensaje) está en [`docs/whatsapp-bot.md`](docs/whatsapp-bot.md).
 
 ## Alcance actual y próximos pasos
 
@@ -263,8 +265,8 @@ choferes (con ficha individual y su historial de viajes), pacientes (con
 ficha individual: datos, viajes, notificaciones y horarios sugeridos;
 separación de datos sensibles), notificaciones (centro de notificaciones),
 incidentes, configuración de aviso, backend en Firebase (Firestore, elegido
-automáticamente por variables de entorno) y un scaffold inicial del webhook
-de WhatsApp en Cloud Functions.
+automáticamente por variables de entorno) y el webhook de WhatsApp en
+Cloudflare Workers.
 
 Deliberadamente fuera de este MVP (documentado, no implementado a medias):
 login real de administrador/coordinador, integración real de

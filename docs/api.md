@@ -1,8 +1,9 @@
 # API y backend
 
-> El backend elegido es **Firebase** (Firestore + Cloud Functions). Este
-> documento describe la alternativa de conectar un backend HTTP propio en
-> vez de (o adicionalmente a) Firestore. Para la guía de Firebase, ver
+> El backend elegido es **Firebase** (Firestore) más un Worker de Cloudflare
+> para el bot de WhatsApp (ver [`docs/whatsapp-bot.md`](whatsapp-bot.md)).
+> Este documento describe la alternativa de conectar un backend HTTP propio
+> en vez de (o adicionalmente a) Firestore. Para la guía de Firebase, ver
 > [`docs/firebase.md`](firebase.md).
 
 ## Estado actual

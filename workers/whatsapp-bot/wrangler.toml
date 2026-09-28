@@ -1,0 +1,19 @@
+name = "moviapoyo-whatsapp-bot"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+# El id del proyecto de Firebase no es secreto (ya está en el bundle público
+# del frontend, ver .env.production) — los datos sensibles van todos como
+# secrets (`wrangler secret put ...`, ver README.md de esta carpeta), nunca
+# acá.
+[vars]
+FIREBASE_PROJECT_ID = "moviapoyo"
+
+# Corre cada un minuto: busca notificaciones nuevas escritas por la web
+# (colección `notifications`, ver sendPendingNotifications.ts) y las manda
+# por WhatsApp. Reemplaza al trigger de Firestore que existía en la versión
+# con Firebase Functions — Cloudflare Workers no puede quedarse "escuchando"
+# una colección, así que en vez de reaccionar al instante, se fija cada
+# minuto (rule pedida: que no haga falta tarjeta de crédito en ningún lado).
+[triggers]
+crons = ["* * * * *"]

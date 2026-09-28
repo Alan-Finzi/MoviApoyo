@@ -13,8 +13,9 @@ dist-ssr
 coverage
 *.local
 
-# Cloud Functions (proyecto Node aparte, ver functions/)
-functions/lib
+# Bot de WhatsApp (proyecto Node aparte, ver workers/whatsapp-bot/)
+.wrangler/
+.dev.vars
 firebase-debug.log
 firebase-debug.*.log
 .firebase/

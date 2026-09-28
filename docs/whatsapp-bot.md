@@ -13,15 +13,18 @@ enunciado original): esos paneles quedan **reemplazados** por este bot, no
 se van a construir como pantallas de React.
 
 > Este documento describe el diseño. Ya existe un backend/webhook
-> implementado en `functions/` (identificación de chofer/familiar,
+> implementado en `workers/whatsapp-bot/` (identificación de chofer/familiar,
 > idempotencia, botones de estado del chofer, confirmación/cancelación del
 > familiar, envío real por la Graph API de Meta) — ver
-> [`functions/README.md`](../functions/README.md) para el detalle exacto de
-> qué está hecho y qué falta. Lo que sigue pendiente, todavía sin una cuenta
-> real de Meta conectada: validar la firma del webhook, avanzar estados por
-> proximidad real de GPS, el flujo completo de incidentes con lista de
-> tipos, y las consultas de los padres (ver
-> [Qué falta para implementarlo](#qué-falta-para-implementarlo)).
+> [`workers/whatsapp-bot/README.md`](../workers/whatsapp-bot/README.md) para
+> el detalle exacto de qué está hecho y qué falta. Corre en Cloudflare
+> Workers en vez de Firebase Cloud Functions (que exigía el plan de pago
+> Blaze incluso para uso gratuito) — sigue hablando con el mismo Firestore
+> del proyecto de Firebase, solo cambió dónde corre el código del servidor.
+> Lo que sigue pendiente, todavía sin una cuenta real de Meta conectada:
+> validar la firma del webhook, avanzar estados por proximidad real de GPS,
+> el flujo completo de incidentes con lista de tipos, y las consultas de los
+> padres (ver [Qué falta para implementarlo](#qué-falta-para-implementarlo)).
 
 ## Por qué esto no puede vivir en este repositorio
 
@@ -30,10 +33,11 @@ ningún proceso corriendo del lado del servidor. WhatsApp Business API entrega
 los mensajes entrantes mediante un **webhook** — una URL HTTPS pública que
 alguien debe tener escuchando 24/7. Un navegador no puede cumplir ese rol.
 
-Por eso, el bot va a vivir en un **servicio de backend aparte** (Node/Express,
-o una función serverless: Cloud Functions, Lambda, etc. — la misma decisión
-que hay que tomar el día que se conecte cualquier backend real, ver
-`docs/api.md`).
+Por eso, el bot vive en un **servicio de backend aparte**: un Worker de
+Cloudflare (`workers/whatsapp-bot/`), elegido puntualmente porque su plan
+gratis no exige tarjeta de crédito en ningún lado (a diferencia de Firebase
+Cloud Functions, que exige el plan Blaze incluso para uso $0) — ver
+`docs/api.md` para la decisión general de backend del resto de la app.
 
 ## La buena noticia: la lógica de negocio ya está lista
 
@@ -136,12 +140,14 @@ frontend) — probablemente una tabla/colección simple con un TTL corto.
 
 ## Qué falta para implementarlo
 
-Ya resuelto: el backend es Cloud Functions (Firebase, `functions/`), con el
-webhook handler, el resolver de identidad, la idempotencia por mensaje, los
-botones del chofer y la confirmación/cancelación del familiar implementados
-— ver [`functions/README.md`](../functions/README.md) para el detalle
-completo de qué hay y qué falta ahí puntualmente. Pendiente a nivel de
-proyecto:
+Ya resuelto: el backend es un Worker de Cloudflare
+(`workers/whatsapp-bot/`), con el webhook handler, el resolver de
+identidad, la idempotencia por mensaje, los botones del chofer, la
+confirmación/cancelación del familiar y los avisos salientes (por cron, ver
+`sendPendingNotifications.ts`) implementados — ver
+[`workers/whatsapp-bot/README.md`](../workers/whatsapp-bot/README.md) para
+el detalle completo de qué hay y qué falta ahí puntualmente. Pendiente a
+nivel de proyecto:
 
 1. Conseguir acceso real a WhatsApp Business API: cuenta de Meta for
    Developers + número verificado. Nada de lo implementado se probó todavía
@@ -150,12 +156,12 @@ proyecto:
    del código compartido con la web.
 2. Migrar los repositorios de `Mock*` a `*Api` del lado de la web (o a
    acceso directo a una base de datos) — ver `docs/api.md`. El webhook de
-   `functions/` ya usa Firestore directo, independiente de esta migración.
-3. `UpdateVehicleLocationUseCase` (avanzar el estado del traslado por
-   proximidad real de GPS en vez de saltear los pasos intermedios de una
-   sola vez) y el manejo de conversación de varios pasos para el flujo
-   completo de incidentes (hoy es un botón único, ver
-   `functions/README.md`).
+   `workers/whatsapp-bot/` ya usa Firestore directo, independiente de esta
+   migración.
+3. Avanzar el estado del traslado por proximidad real de GPS en vez de
+   confirmarlo con las preguntas Sí/No del chofer, y el manejo de
+   conversación de varios pasos para el flujo completo de incidentes (hoy es
+   un botón único, ver `workers/whatsapp-bot/README.md`).
 4. Dar de baja (o dejar sin uso) las rutas `RoleGuard` pensadas para un
    futuro panel de chofer/familia en la web — con este diseño, esos roles ya
    no necesitan pantallas propias. Es una decisión pendiente de confirmar

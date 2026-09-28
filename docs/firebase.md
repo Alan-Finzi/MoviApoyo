@@ -2,9 +2,11 @@
 
 MoviApoyo usa Firebase como backend: Firestore para guardar traslados,
 choferes, vehículos, pacientes, tutores, incidentes, notificaciones y
-configuración; Cloud Functions para el webhook de WhatsApp
-([`docs/whatsapp-bot.md`](whatsapp-bot.md)). Este documento es la guía para
-levantar tu propio proyecto de Firebase y conectarlo.
+configuración. El webhook de WhatsApp corre aparte, en Cloudflare Workers
+(no en Firebase — ver [`docs/whatsapp-bot.md`](whatsapp-bot.md) para por
+qué), pero sigue leyendo/escribiendo el mismo Firestore de este proyecto.
+Este documento es la guía para levantar tu propio proyecto de Firebase y
+conectarlo.
 
 ## Cómo decide la app si usa Firestore o los Mocks
 
@@ -104,11 +106,11 @@ de cargar los primeros choferes/vehículos/pacientes/tutores de prueba:
 - Con el [emulador de Firestore](https://firebase.google.com/docs/emulator-suite)
   para desarrollo local sin tocar datos reales.
 
-## 6. Cloud Functions (webhook de WhatsApp)
+## 6. Bot de WhatsApp (Cloudflare Workers, no Firebase)
 
-Ver [`functions/README.md`](../functions/README.md) para instalar,
-levantar el emulador y desplegar. El diseño completo del bot está en
-[`docs/whatsapp-bot.md`](whatsapp-bot.md).
+Ver [`workers/whatsapp-bot/README.md`](../workers/whatsapp-bot/README.md)
+para instalar, correr localmente y desplegar. El diseño completo del bot
+está en [`docs/whatsapp-bot.md`](whatsapp-bot.md).
 
 ## 7. Autenticación real (login de administrador/coordinador)
 

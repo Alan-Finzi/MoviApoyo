@@ -12,10 +12,11 @@ import tseslint from 'typescript-eslint'
 // entre capas (Domain, Application, Infrastructure, Presentation).
 export default tseslint.config(
   {
-    // functions/ es un proyecto Node aparte (Cloud Functions), con su
-    // propio package.json y tsconfig.json — se lintea/instala por separado
-    // (ver functions/README.md), no como parte de esta app de Vite.
-    ignores: ['dist', 'node_modules', 'coverage', 'functions'],
+    // workers/whatsapp-bot/ es un proyecto Node aparte (Cloudflare Workers),
+    // con su propio package.json y tsconfig.json — se lintea/instala por
+    // separado (ver workers/whatsapp-bot/README.md), no como parte de esta
+    // app de Vite.
+    ignores: ['dist', 'node_modules', 'coverage', 'workers'],
   },
   {
     files: ['**/*.{ts,tsx}'],

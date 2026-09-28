@@ -10,10 +10,11 @@ export interface ConfirmTripInput {
 }
 
 // Registra la confirmación del familiar (por WhatsApp, ver
-// functions/src/whatsappWebhook.ts). Quién confirmó y su relación con el
-// paciente quedan en el propio TripEvent.actor — no se agregan campos nuevos
-// a Trip para esto porque el historial ya es la fuente de verdad (rule
-// pedida: "no depender solo del estado actual del viaje").
+// workers/whatsapp-bot/src/whatsappWebhook.ts). Quién confirmó y su
+// relación con el paciente quedan en el propio TripEvent.actor — no se
+// agregan campos nuevos a Trip para esto porque el historial ya es la
+// fuente de verdad (rule pedida: "no depender solo del estado actual del
+// viaje").
 export class ConfirmTripUseCase {
   constructor(private readonly updateTripStatusUseCase: UpdateTripStatusUseCase) {}
 

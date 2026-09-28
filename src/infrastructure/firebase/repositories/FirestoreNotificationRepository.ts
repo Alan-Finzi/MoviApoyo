@@ -50,14 +50,25 @@ export class FirestoreNotificationRepository implements NotificationRepository {
   }
 
   async saveNotification(notification: Omit<AppNotification, 'id'>): Promise<AppNotification> {
-    const docRef = await addDoc(collection(this.firestore, COLLECTION), notification)
+    // whatsappSentAt: null es la marca que busca el cron del bot de WhatsApp
+    // (workers/whatsapp-bot/src/sendPendingNotifications.ts, corre cada 1
+    // minuto) para saber que todavía no se mandó — sin esto puesto de
+    // entrada, su consulta `== null` no encontraría el documento (un campo
+    // ausente no matchea, tiene que estar presente y en null). Este
+    // repositorio no sabe ni necesita saber que WhatsApp existe más allá de
+    // esta marca (mismo criterio que ya describe el comentario de
+    // subscribe() más abajo).
+    const docRef = await addDoc(collection(this.firestore, COLLECTION), {
+      ...notification,
+      whatsappSentAt: null,
+    })
     return { ...notification, id: docRef.id }
   }
 
   // onSnapshot es en tiempo real de verdad (a diferencia del pub-sub en
   // memoria de MockNotificationRepository): cualquier notificación que
-  // escriba la futura Cloud Function del bot de WhatsApp aparece acá sin
-  // que nadie tenga que hacer polling.
+  // marque como enviada el bot de WhatsApp (ver workers/whatsapp-bot/)
+  // aparece acá sin que nadie tenga que hacer polling del lado de la web.
   subscribe(listener: () => void): () => void {
     return onSnapshot(collection(this.firestore, COLLECTION), () => {
       listener()

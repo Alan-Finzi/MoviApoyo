@@ -1,14 +1,22 @@
-import { getFirestore, FieldValue } from 'firebase-admin/firestore'
-import * as logger from 'firebase-functions/logger'
-
 import {
   consumeAwaitingCancellationReason,
   setAwaitingCancellationReason,
 } from './conversationState'
 import { tryMarkMessageAsProcessed } from './dedupe'
+import {
+  and,
+  appendToArray,
+  createDocument,
+  fieldEquals,
+  fieldIn,
+  getDocument,
+  patchDocument,
+  runQuery,
+} from './firestoreRest'
 import { identifySender } from './identity'
 import { getGuardianNotificationMessage, getGuardianNotificationType } from './tripNotificationRules'
 import { canTransition, eventTypeForStatus, TripStatus } from './tripStatusMachine'
+import type { Env } from './types'
 import { sendWhatsAppButtons, sendWhatsAppText, type WhatsAppButton } from './whatsappClient'
 
 // Traslados que todavía pueden avanzar — se usa tanto para "cuál es el
@@ -98,7 +106,7 @@ interface TripSnapshot {
   readonly driverId: string
 }
 
-function tripSnapshotFromDoc(id: string, data: FirebaseFirestore.DocumentData): TripSnapshot {
+function tripSnapshotFromDoc(id: string, data: Record<string, unknown>): TripSnapshot {
   return {
     id,
     status: data.status as TripStatus,
@@ -107,22 +115,20 @@ function tripSnapshotFromDoc(id: string, data: FirebaseFirestore.DocumentData): 
   }
 }
 
-async function findActiveOrNextTripForDriver(driverId: string): Promise<TripSnapshot | null> {
-  const snapshot = await getFirestore()
-    .collection('trips')
-    .where('driverId', '==', driverId)
-    .where('status', 'in', NON_TERMINAL_STATUSES)
-    .orderBy('scheduledDeparture', 'asc')
-    .limit(1)
-    .get()
-  const doc = snapshot.docs[0]
-  return doc ? tripSnapshotFromDoc(doc.id, doc.data()) : null
+async function findActiveOrNextTripForDriver(env: Env, driverId: string): Promise<TripSnapshot | null> {
+  const docs = await runQuery(env, {
+    from: [{ collectionId: 'trips' }],
+    where: and(fieldEquals('driverId', driverId), fieldIn('status', NON_TERMINAL_STATUSES)),
+    orderBy: [{ field: { fieldPath: 'scheduledDeparture' }, direction: 'ASCENDING' }],
+    limit: 1,
+  })
+  const doc = docs[0]
+  return doc ? tripSnapshotFromDoc(doc.id, doc.data) : null
 }
 
-async function getTrip(tripId: string): Promise<TripSnapshot | null> {
-  const doc = await getFirestore().collection('trips').doc(tripId).get()
-  const data = doc.data()
-  return data ? tripSnapshotFromDoc(doc.id, data) : null
+async function getTrip(env: Env, tripId: string): Promise<TripSnapshot | null> {
+  const doc = await getDocument(env, `trips/${tripId}`)
+  return doc ? tripSnapshotFromDoc(doc.id, doc.data) : null
 }
 
 interface PassengerSnapshot {
@@ -130,16 +136,16 @@ interface PassengerSnapshot {
   readonly guardianId: string | null
 }
 
-async function getPassenger(passengerId: string): Promise<PassengerSnapshot> {
-  const doc = await getFirestore().collection('passengers').doc(passengerId).get()
-  const data = doc.data()
+async function getPassenger(env: Env, passengerId: string): Promise<PassengerSnapshot> {
+  const doc = await getDocument(env, `passengers/${passengerId}`)
   return {
-    firstName: (data?.firstName as string | undefined) ?? 'el paciente',
-    guardianId: (data?.guardianId as string | undefined) ?? null,
+    firstName: (doc?.data.firstName as string | undefined) ?? 'el paciente',
+    guardianId: (doc?.data.guardianId as string | undefined) ?? null,
   }
 }
 
 async function appendTripEvent(
+  env: Env,
   tripId: string,
   event: {
     readonly type: string
@@ -148,44 +154,35 @@ async function appendTripEvent(
     readonly reason?: string
   },
 ): Promise<void> {
-  await getFirestore()
-    .collection('trips')
-    .doc(tripId)
-    .update({
-      events: FieldValue.arrayUnion({
-        id: `event-${Date.now().toString()}-${Math.random().toString(36).slice(2, 8)}`,
-        tripId,
-        timestamp: new Date().toISOString(),
-        ...event,
-      }),
-    })
+  await appendToArray(env, `trips/${tripId}`, 'events', {
+    id: `event-${Date.now().toString()}-${Math.random().toString(36).slice(2, 8)}`,
+    tripId,
+    timestamp: new Date().toISOString(),
+    ...event,
+  })
 }
 
 // Espejo de UpdateTripStatusUseCase (src/application/useCases): valida la
 // transición contra la misma tabla, deja el mismo tipo de evento de
 // auditoría y, si el estado lo amerita (ver tripNotificationRules.ts),
 // escribe en `notifications` — igual que hace UpdateTripStatusUseCase del
-// lado de la web — para que sendGuardianNotification (ver
-// sendGuardianNotification.ts) la mande por WhatsApp al familiar. Antes de
-// este cambio, un traslado que avanzaba solo por acá (chofer por WhatsApp)
-// nunca avisaba al familiar; el aviso solo salía si un coordinador tocaba
-// algo en la web.
+// lado de la web. `whatsappSentAt: null` es la marca que después busca
+// sendPendingNotifications.ts (el cron) para saber que todavía no se
+// mandó — sin esto, la consulta `== null` de Firestore no encontraría nada
+// (un campo ausente no matchea, tiene que estar presente y en null).
 async function updateTripStatus(
+  env: Env,
   trip: TripSnapshot,
   nextStatus: TripStatus,
   actor: string,
   reason?: string,
 ): Promise<boolean> {
   if (!canTransition(trip.status, nextStatus)) {
-    logger.warn('Transición de estado rechazada (WhatsApp)', {
-      tripId: trip.id,
-      from: trip.status,
-      to: nextStatus,
-    })
+    console.warn('Transición de estado rechazada (WhatsApp)', { tripId: trip.id, from: trip.status, to: nextStatus })
     return false
   }
-  await getFirestore().collection('trips').doc(trip.id).update({ status: nextStatus })
-  await appendTripEvent(trip.id, {
+  await patchDocument(env, `trips/${trip.id}`, { status: nextStatus })
+  await appendTripEvent(env, trip.id, {
     type: eventTypeForStatus(nextStatus),
     description: reason
       ? `Traslado actualizado a "${nextStatus}" por WhatsApp. Motivo: ${reason}`
@@ -194,20 +191,19 @@ async function updateTripStatus(
     reason,
   })
 
-  const passenger = await getPassenger(trip.passengerId)
+  const passenger = await getPassenger(env, trip.passengerId)
   const message = getGuardianNotificationMessage(nextStatus, passenger.firstName)
   if (message && passenger.guardianId) {
-    await getFirestore()
-      .collection('notifications')
-      .add({
-        tripId: trip.id,
-        guardianId: passenger.guardianId,
-        type: getGuardianNotificationType(nextStatus),
-        channel: 'WHATSAPP',
-        message,
-        status: 'ENVIADA',
-        createdAt: new Date().toISOString(),
-      })
+    await createDocument(env, 'notifications', {
+      tripId: trip.id,
+      guardianId: passenger.guardianId,
+      type: getGuardianNotificationType(nextStatus),
+      channel: 'WHATSAPP',
+      message,
+      status: 'ENVIADA',
+      whatsappSentAt: null,
+      createdAt: new Date().toISOString(),
+    })
   }
 
   return true
@@ -219,6 +215,7 @@ async function updateTripStatus(
 // cada micro-estado (cerca del domicilio, llegando, etc.), esos quedan
 // igual auditados como eventos propios con su propio timestamp.
 async function advanceAlongHappyPath(
+  env: Env,
   trip: TripSnapshot,
   targetStatus: TripStatus,
   actor: string,
@@ -231,7 +228,7 @@ async function advanceAlongHappyPath(
 
   let current = trip
   for (const status of HAPPY_PATH.slice(currentIndex + 1, targetIndex + 1)) {
-    const applied = await updateTripStatus(current, status, actor)
+    const applied = await updateTripStatus(env, current, status, actor)
     if (!applied) break
     current = { ...current, status }
   }
@@ -254,10 +251,10 @@ function pickupQuestionButtons(
   }
 }
 
-async function buttonsForDriverTrip(trip: TripSnapshot): Promise<{
-  readonly text: string
-  readonly buttons: readonly WhatsAppButton[]
-}> {
+async function buttonsForDriverTrip(
+  env: Env,
+  trip: TripSnapshot,
+): Promise<{ readonly text: string; readonly buttons: readonly WhatsAppButton[] }> {
   if (
     trip.status === TripStatus.SCHEDULED ||
     trip.status === TripStatus.CONFIRMATION_PENDING ||
@@ -273,15 +270,12 @@ async function buttonsForDriverTrip(trip: TripSnapshot): Promise<{
       ],
     }
   }
-  if (
-    trip.status === TripStatus.ON_THE_WAY ||
-    trip.status === TripStatus.NEAR_HOME
-  ) {
+  if (trip.status === TripStatus.ON_THE_WAY || trip.status === TripStatus.NEAR_HOME) {
     // Antes esto era un único botón "Recogido" que saltaba directo a
     // recogido. Ahora se confirma en dos pasos explícitos (rule pedida:
     // "que responda llegaste SI o NO, retiraste al paciente SI o NO") — ver
     // ARRIVED_YES/ARRIVED_NO/PICKUP_YES/PICKUP_NO en handleDriverMessage.
-    const passenger = await getPassenger(trip.passengerId)
+    const passenger = await getPassenger(env, trip.passengerId)
     return {
       text: `¿Llegaste al domicilio de ${passenger.firstName}?`,
       buttons: [
@@ -293,7 +287,7 @@ async function buttonsForDriverTrip(trip: TripSnapshot): Promise<{
   }
   if (trip.status === TripStatus.ARRIVING) {
     // Ya confirmó que llegó — lo único que falta es la segunda pregunta.
-    const passenger = await getPassenger(trip.passengerId)
+    const passenger = await getPassenger(env, trip.passengerId)
     return pickupQuestionButtons(trip, passenger.firstName)
   }
   return {
@@ -306,23 +300,17 @@ async function buttonsForDriverTrip(trip: TripSnapshot): Promise<{
   }
 }
 
-async function handleDriverMessage(driverId: string, message: WhatsAppMessage): Promise<void> {
+async function handleDriverMessage(env: Env, driverId: string, message: WhatsAppMessage): Promise<void> {
   if (message.type === 'location' && message.location) {
-    const trip = await findActiveOrNextTripForDriver(driverId)
+    const trip = await findActiveOrNextTripForDriver(env, driverId)
     if (!trip) {
-      logger.warn('El chofer no tiene un traslado activo en este momento', { driverId })
+      console.warn('El chofer no tiene un traslado activo en este momento', { driverId })
       return
     }
-    await getFirestore()
-      .collection('trips')
-      .doc(trip.id)
-      .update({
-        currentLocation: {
-          latitude: message.location.latitude,
-          longitude: message.location.longitude,
-        },
-      })
-    logger.info('Ubicación actualizada desde WhatsApp', { tripId: trip.id, driverId })
+    await patchDocument(env, `trips/${trip.id}`, {
+      currentLocation: { latitude: message.location.latitude, longitude: message.location.longitude },
+    })
+    console.log('Ubicación actualizada desde WhatsApp', { tripId: trip.id, driverId })
     return
   }
 
@@ -330,61 +318,61 @@ async function handleDriverMessage(driverId: string, message: WhatsAppMessage): 
   if (buttonId) {
     const [action, tripId] = buttonId.split(':')
     if (!tripId) return
-    const trip = await getTrip(tripId)
+    const trip = await getTrip(env, tripId)
     if (!trip || trip.driverId !== driverId) return
 
     if (action === 'ADVANCE_ON_THE_WAY') {
-      await advanceAlongHappyPath(trip, TripStatus.ON_THE_WAY, `Chofer (${driverId})`)
-      await sendWhatsAppText(message.from, 'Listo, viaje iniciado.')
+      await advanceAlongHappyPath(env, trip, TripStatus.ON_THE_WAY, `Chofer (${driverId})`)
+      await sendWhatsAppText(env, message.from, 'Listo, viaje iniciado.')
       return
     }
     if (action === 'ARRIVED_YES') {
-      const updated = await advanceAlongHappyPath(trip, TripStatus.ARRIVING, `Chofer (${driverId})`)
-      const passenger = await getPassenger(updated.passengerId)
+      const updated = await advanceAlongHappyPath(env, trip, TripStatus.ARRIVING, `Chofer (${driverId})`)
+      const passenger = await getPassenger(env, updated.passengerId)
       const { text, buttons } = pickupQuestionButtons(updated, passenger.firstName)
-      await sendWhatsAppButtons(message.from, text, buttons)
+      await sendWhatsAppButtons(env, message.from, text, buttons)
       return
     }
     if (action === 'ARRIVED_NO') {
-      await sendWhatsAppText(message.from, 'Dale, avisame apenas llegues.')
+      await sendWhatsAppText(env, message.from, 'Dale, avisame apenas llegues.')
       return
     }
     if (action === 'PICKUP_YES') {
-      await advanceAlongHappyPath(trip, TripStatus.PICKED_UP, `Chofer (${driverId})`)
-      await sendWhatsAppText(message.from, 'Listo, registrado como recogido.')
+      await advanceAlongHappyPath(env, trip, TripStatus.PICKED_UP, `Chofer (${driverId})`)
+      await sendWhatsAppText(env, message.from, 'Listo, registrado como recogido.')
       return
     }
     if (action === 'PICKUP_NO') {
-      await updateTripStatus(trip, TripStatus.NO_SHOW, `Chofer (${driverId})`)
+      await updateTripStatus(env, trip, TripStatus.NO_SHOW, `Chofer (${driverId})`)
       await sendWhatsAppText(
+        env,
         message.from,
         'Entendido, registramos que el paciente no salió. Avisamos al familiar y a un coordinador.',
       )
       return
     }
     if (action === 'ADVANCE_COMPLETED') {
-      await advanceAlongHappyPath(trip, TripStatus.ARRIVED_AT_DESTINATION, `Chofer (${driverId})`)
-      const updated = await getTrip(tripId)
-      if (updated) await updateTripStatus(updated, TripStatus.COMPLETED, `Chofer (${driverId})`)
-      await sendWhatsAppText(message.from, 'Listo, viaje finalizado.')
+      await advanceAlongHappyPath(env, trip, TripStatus.ARRIVED_AT_DESTINATION, `Chofer (${driverId})`)
+      const updated = await getTrip(env, tripId)
+      if (updated) await updateTripStatus(env, updated, TripStatus.COMPLETED, `Chofer (${driverId})`)
+      await sendWhatsAppText(env, message.from, 'Listo, viaje finalizado.')
       return
     }
     if (action === 'REPORT_PROBLEM' || action === 'REPORT_EMERGENCY') {
-      await getFirestore()
-        .collection('incidents')
-        .add({
-          tripId,
-          type: action === 'REPORT_EMERGENCY' ? 'EMERGENCIA' : 'OTRO',
-          description:
-            action === 'REPORT_EMERGENCY'
-              ? 'Emergencia reportada por WhatsApp.'
-              : 'Problema reportado por WhatsApp (sin detalle adicional).',
-          timestamp: new Date().toISOString(),
-          estimatedDelayMinutes: 15,
-          reportedBy: `Chofer (${driverId})`,
-        })
-      await updateTripStatus(trip, TripStatus.INCIDENT, `Chofer (${driverId})`)
+      await createDocument(env, 'incidents', {
+        tripId,
+        type: action === 'REPORT_EMERGENCY' ? 'EMERGENCIA' : 'OTRO',
+        description:
+          action === 'REPORT_EMERGENCY'
+            ? 'Emergencia reportada por WhatsApp.'
+            : 'Problema reportado por WhatsApp (sin detalle adicional).',
+        timestamp: new Date().toISOString(),
+        estimatedDelayMinutes: 15,
+        reportedBy: `Chofer (${driverId})`,
+      })
+      await updateTripStatus(env, trip, TripStatus.INCIDENT, `Chofer (${driverId})`)
       await sendWhatsAppText(
+        env,
         message.from,
         action === 'REPORT_EMERGENCY'
           ? 'Emergencia registrada. Un coordinador te va a contactar.'
@@ -399,16 +387,17 @@ async function handleDriverMessage(driverId: string, message: WhatsAppMessage): 
   // se responde con el estado del viaje relevante y los botones que
   // correspondan, en vez de intentar interpretar lenguaje natural (rule del
   // diseño original).
-  const trip = await findActiveOrNextTripForDriver(driverId)
+  const trip = await findActiveOrNextTripForDriver(env, driverId)
   if (!trip) {
-    await sendWhatsAppText(message.from, 'No tenés ningún viaje activo en este momento.')
+    await sendWhatsAppText(env, message.from, 'No tenés ningún viaje activo en este momento.')
     return
   }
-  const { text, buttons } = await buttonsForDriverTrip(trip)
-  await sendWhatsAppButtons(message.from, text, buttons)
+  const { text, buttons } = await buttonsForDriverTrip(env, trip)
+  await sendWhatsAppButtons(env, message.from, text, buttons)
 }
 
 async function handleGuardianMessage(
+  env: Env,
   guardian: { readonly id: string; readonly fullName: string; readonly relationship: string },
   message: WhatsAppMessage,
 ): Promise<void> {
@@ -416,16 +405,18 @@ async function handleGuardianMessage(
   if (buttonId) {
     const [action, tripId] = buttonId.split(':')
     if (!tripId) return
-    const trip = await getTrip(tripId)
+    const trip = await getTrip(env, tripId)
     if (!trip) return
 
     if (action === 'CONFIRM_TRIP') {
       const applied = await updateTripStatus(
+        env,
         trip,
         TripStatus.CONFIRMED,
         `${guardian.fullName} (${guardian.relationship})`,
       )
       await sendWhatsAppText(
+        env,
         message.from,
         applied
           ? 'Gracias, viaje confirmado.'
@@ -434,29 +425,31 @@ async function handleGuardianMessage(
       return
     }
     if (action === 'CANCEL_TRIP') {
-      await setAwaitingCancellationReason(message.from, {
+      await setAwaitingCancellationReason(env, message.from, {
         tripId,
         guardianFullName: guardian.fullName,
         relationship: guardian.relationship,
       })
-      await sendWhatsAppText(message.from, '¿Por qué motivo cancelás el viaje? Contanos en un mensaje.')
+      await sendWhatsAppText(env, message.from, '¿Por qué motivo cancelás el viaje? Contanos en un mensaje.')
       return
     }
     return
   }
 
-  const pendingCancellation = await consumeAwaitingCancellationReason(message.from)
+  const pendingCancellation = await consumeAwaitingCancellationReason(env, message.from)
   if (pendingCancellation && message.type === 'text' && message.text?.body.trim()) {
-    const trip = await getTrip(pendingCancellation.tripId)
+    const trip = await getTrip(env, pendingCancellation.tripId)
     if (!trip) return
     const applied = await updateTripStatus(
+      env,
       trip,
       TripStatus.CANCELLED,
       `${pendingCancellation.guardianFullName} (${pendingCancellation.relationship})`,
       message.text.body.trim(),
     )
-    const passengerFirstName = (await getPassenger(trip.passengerId)).firstName
+    const passengerFirstName = (await getPassenger(env, trip.passengerId)).firstName
     await sendWhatsAppText(
+      env,
       message.from,
       applied
         ? `Listo, cancelamos el viaje de ${passengerFirstName}.`
@@ -465,7 +458,7 @@ async function handleGuardianMessage(
     return
   }
 
-  logger.info('Mensaje de familiar sin manejador todavía (ver docs/whatsapp-bot.md)', {
+  console.log('Mensaje de familiar sin manejador todavía (ver docs/whatsapp-bot.md)', {
     guardianId: guardian.id,
     type: message.type,
   })
@@ -479,39 +472,42 @@ async function handleGuardianMessage(
 // confirmación/cancelación del familiar (con motivo obligatorio para
 // cancelar) y aviso al familiar por WhatsApp en los mismos hitos que ya
 // notifica la web (cerca del domicilio, recogido, en camino, entregado,
-// paciente ausente — ver tripNotificationRules.ts).
+// paciente ausente — ver tripNotificationRules.ts). Los avisos salientes
+// (acá y desde la web) los termina mandando sendPendingNotifications.ts,
+// que corre por cron cada un minuto — ver index.ts.
 //
 // Todavía NO implementado (ver docs/whatsapp-bot.md): avance de estado por
 // proximidad real de GPS (cerca del domicilio/destino — hoy esos pasos
 // intermedios se saltean de una sola vez al tocar "Iniciar"/"Sí, llegué", en
 // vez de detectarse solos como en TripSimulationEngine), la lista de tipos
 // de incidente con descripción propia (hoy es un botón único "Problema" con
-// descripción genérica), y las consultas de los padres ("¿dónde está mi
-// hijo?").
-export async function processWhatsAppWebhook(payload: WhatsAppWebhookPayload): Promise<void> {
+// descripción genérica), las consultas de los padres ("¿dónde está mi
+// hijo?"), y validar la firma "X-Hub-Signature-256" del request (confirmar
+// que el POST viene realmente de Meta) — importante antes de producción.
+export async function processWhatsAppWebhook(env: Env, payload: WhatsAppWebhookPayload): Promise<void> {
   const messages = extractMessages(payload)
 
   for (const message of messages) {
-    const isNewMessage = await tryMarkMessageAsProcessed(message.id)
+    const isNewMessage = await tryMarkMessageAsProcessed(env, message.id)
     if (!isNewMessage) {
-      logger.info('Mensaje de WhatsApp repetido, se ignora (idempotencia)', { id: message.id })
+      console.log('Mensaje de WhatsApp repetido, se ignora (idempotencia)', { id: message.id })
       continue
     }
 
-    const sender = await identifySender(message.from)
+    const sender = await identifySender(env, message.from)
     if (!sender) {
-      logger.warn('Mensaje de WhatsApp de un número no reconocido', { from: message.from })
+      console.warn('Mensaje de WhatsApp de un número no reconocido', { from: message.from })
       continue
     }
 
     try {
       if (sender.type === 'driver') {
-        await handleDriverMessage(sender.id, message)
+        await handleDriverMessage(env, sender.id, message)
       } else {
-        await handleGuardianMessage(sender, message)
+        await handleGuardianMessage(env, sender, message)
       }
     } catch (error) {
-      logger.error('Error procesando un mensaje de WhatsApp', { error, from: message.from })
+      console.error('Error procesando un mensaje de WhatsApp', { error, from: message.from })
     }
   }
 }
