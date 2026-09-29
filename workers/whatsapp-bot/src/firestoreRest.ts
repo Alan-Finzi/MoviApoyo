@@ -1,16 +1,19 @@
-import { importPKCS8, SignJWT } from 'jose'
-
 import type { Env } from './types'
 
 // Cliente mínimo de la API REST de Firestore (no la de Admin SDK, que
 // depende de gRPC/Node y no corre en el runtime de Cloudflare Workers — ver
-// README.md de esta carpeta). Autentica como Service Account con OAuth2
-// server-to-server (JWT firmado con la clave privada, canjeado por un
-// access token), el mismo mecanismo que documenta Google para "server to
-// server applications" sin pasar por ninguna cuenta de usuario ni tarjeta.
+// README.md de esta carpeta). Se autentica como un usuario más de Firebase
+// Authentication (un login dedicado para el bot, creado a mano en la
+// consola de Firebase — ver README.md), igual que hace la web con
+// admin/coordinador: las reglas de Firestore (`firestore.rules`) ya
+// permiten leer/escribir a cualquier usuario logueado (`isSignedIn()`), así
+// que no hace falta nada más. A propósito NO se usa una Service Account de
+// Google Cloud: crearla exige entrar a la consola de Google Cloud, que en
+// cuentas nuevas puede pedir cargar una tarjeta antes de dejar avanzar —
+// esto lo evita del todo.
 
-const FIRESTORE_SCOPE = 'https://www.googleapis.com/auth/datastore'
-const TOKEN_URL = 'https://oauth2.googleapis.com/token'
+const IDENTITY_TOOLKIT_SIGN_IN_URL =
+  'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword'
 
 function databaseUrl(env: Env): string {
   return `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents`
@@ -20,43 +23,36 @@ function fullResourceName(env: Env, path: string): string {
   return `projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/${path}`
 }
 
-// Cacheado en memoria del isolate (rule: no pedir un token nuevo en cada
+// Cacheado en memoria del isolate (rule: no pedir un ID token nuevo en cada
 // request si el anterior todavía vale — dura 1h, se renueva 1 min antes de
 // vencer). Se pierde si Cloudflare recicla el isolate, sin problema: se
 // vuelve a pedir solo.
 let cachedToken: { readonly value: string; readonly expiresAtMs: number } | null = null
 
-async function getAccessToken(env: Env): Promise<string> {
+async function getIdToken(env: Env): Promise<string> {
   if (cachedToken && cachedToken.expiresAtMs > Date.now()) return cachedToken.value
 
-  const privateKey = await importPKCS8(env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY, 'RS256')
-  const assertion = await new SignJWT({ scope: FIRESTORE_SCOPE })
-    .setProtectedHeader({ alg: 'RS256' })
-    .setIssuer(env.GOOGLE_SERVICE_ACCOUNT_EMAIL)
-    .setSubject(env.GOOGLE_SERVICE_ACCOUNT_EMAIL)
-    .setAudience(TOKEN_URL)
-    .setIssuedAt()
-    .setExpirationTime('1h')
-    .sign(privateKey)
-
-  const response = await fetch(TOKEN_URL, {
+  const response = await fetch(`${IDENTITY_TOOLKIT_SIGN_IN_URL}?key=${env.FIREBASE_WEB_API_KEY}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-      assertion,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: env.WHATSAPP_BOT_EMAIL,
+      password: env.WHATSAPP_BOT_PASSWORD,
+      returnSecureToken: true,
     }),
   })
   if (!response.ok) {
-    throw new Error(`No se pudo obtener el access token de Google: ${response.status.toString()} ${await response.text()}`)
+    throw new Error(
+      `No se pudo iniciar sesión como el usuario del bot: ${response.status.toString()} ${await response.text()}`,
+    )
   }
-  const data = (await response.json()) as { access_token: string; expires_in: number }
-  cachedToken = { value: data.access_token, expiresAtMs: Date.now() + (data.expires_in - 60) * 1000 }
+  const data = (await response.json()) as { idToken: string; expiresIn: string }
+  cachedToken = { value: data.idToken, expiresAtMs: Date.now() + (Number(data.expiresIn) - 60) * 1000 }
   return cachedToken.value
 }
 
 async function authedFetch(env: Env, url: string, init: RequestInit = {}): Promise<Response> {
-  const token = await getAccessToken(env)
+  const token = await getIdToken(env)
   return fetch(url, {
     ...init,
     headers: { ...init.headers, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },

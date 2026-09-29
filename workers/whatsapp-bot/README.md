@@ -11,8 +11,16 @@ alcanza de sobra para esta app.
 
 - **No usa el Admin SDK de Firebase** (no corre en el runtime de Workers,
   que no es Node.js completo) — habla con Firestore directo por su
-  [API REST](https://firebase.google.com/docs/firestore/reference/rest),
-  autenticándose como Service Account vía OAuth2 (`firestoreRest.ts`).
+  [API REST](https://firebase.google.com/docs/firestore/reference/rest).
+- **Se autentica como un usuario más de Firebase Authentication** (un login
+  dedicado para el bot, creado a mano — ver más abajo), no como una Service
+  Account de Google Cloud. Se eligió así a propósito: crear una Service
+  Account requiere entrar a la consola de Google Cloud (IAM), que en
+  cuentas nuevas puede empujarte a cargar una tarjeta antes de dejarte
+  avanzar. Firebase Authentication es una función del propio proyecto de
+  Firebase (plan gratis Spark), sin ese problema — y las reglas de
+  Firestore (`firestore.rules`) ya le dan acceso a cualquier usuario
+  logueado, exactamente como a un admin/coordinador desde la web.
 - **Los avisos salientes ya no son un trigger de Firestore** (Workers no
   puede quedarse "escuchando" una colección) — un
   [Cron Trigger](https://developers.cloudflare.com/workers/configuration/cron-triggers/)
@@ -29,7 +37,7 @@ alcanza de sobra para esta app.
 - Firestore en sí **sigue siendo el mismo**, en el mismo proyecto Firebase —
   esto no migra la base de datos, solo el código que corre del lado del
   servidor. El proyecto de Firebase puede quedarse en el plan gratis
-  (Spark): Firestore no exige Blaze, solo lo exigía Cloud Functions.
+  (Spark): nada de esto exige Blaze.
 
 ## Instalación
 
@@ -44,36 +52,42 @@ npm install
 2. `npx wrangler login` — abre el navegador para autorizar la CLI contra tu
    cuenta.
 
-## Service Account de Google (para que el Worker pueda leer/escribir Firestore)
+## Login de Firebase para el bot (gratis, sin tarjeta, sin Google Cloud)
 
-El Worker no puede usar el Admin SDK, así que se autentica como una cuenta
-de servicio de Google Cloud, con acceso solo a Firestore — esto es gratis y
-no requiere el plan Blaze (Firestore está disponible en el plan Spark).
+El Worker necesita poder leer/escribir Firestore. En vez de una Service
+Account de Google Cloud, usa un usuario de Firebase Authentication dedicado
+— se crea igual que cualquier otro usuario de la app, desde la consola de
+Firebase, y no toca Google Cloud para nada:
 
-1. Consola de Google Cloud → IAM y administración → Cuentas de servicio →
-   `https://console.cloud.google.com/iam-admin/serviceaccounts?project=moviapoyo`
-2. "Crear cuenta de servicio" → nombre a elección (ej.
-   `whatsapp-bot-worker`) → rol **Cloud Datastore User**
-   (`roles/datastore.user`, alcanza y sobra: solo necesita leer/escribir
-   Firestore, nada más).
-3. Entrá a la cuenta creada → pestaña "Claves" → "Agregar clave" → JSON →
-   se descarga un archivo. Ese JSON tiene los dos valores que hacen falta
-   abajo: `client_email` y `private_key`.
+1. Consola de Firebase → tu proyecto → Authentication → pestaña "Users" →
+   "Add user".
+2. Poné cualquier email (no hace falta que exista de verdad, ej.
+   `whatsapp-bot@moviapoyo.internal`) y una contraseña larga y random —
+   guardala, es uno de los secrets de abajo.
+3. Ese usuario **no necesita** un documento en la colección `/admins/` — las
+   reglas de Firestore ya permiten leer/escribir a cualquier usuario
+   logueado (`isSignedIn()`), sin distinción de rol.
+
+También te hace falta la **Web API Key** del proyecto (no es secreta, es la
+misma que ya usa la web): Consola de Firebase → ⚙️ Configuración del
+proyecto → General → "Tus apps" → app web → `apiKey` en el fragmento de
+configuración del SDK (o el mismo valor que tengas en `VITE_FIREBASE_API_KEY`
+si ya configuraste la web, ver `docs/firebase.md`).
 
 ## Configurar los secrets antes de desplegar
 
 ```bash
-npx wrangler secret put GOOGLE_SERVICE_ACCOUNT_EMAIL
-npx wrangler secret put GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY
+npx wrangler secret put FIREBASE_WEB_API_KEY
+npx wrangler secret put WHATSAPP_BOT_EMAIL
+npx wrangler secret put WHATSAPP_BOT_PASSWORD
 npx wrangler secret put WHATSAPP_VERIFY_TOKEN
 npx wrangler secret put WHATSAPP_ACCESS_TOKEN
 npx wrangler secret put WHATSAPP_PHONE_NUMBER_ID
 ```
 
-- `GOOGLE_SERVICE_ACCOUNT_EMAIL` / `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`:
-  salen del JSON del paso anterior (`client_email` y `private_key` tal
-  cual, con los `\n` y todo — pegalo completo, incluyendo las líneas
-  `-----BEGIN PRIVATE KEY-----`/`-----END PRIVATE KEY-----`).
+- `FIREBASE_WEB_API_KEY`: la del paso anterior.
+- `WHATSAPP_BOT_EMAIL` / `WHATSAPP_BOT_PASSWORD`: el usuario que creaste en
+  Firebase Authentication para el bot.
 - `WHATSAPP_VERIFY_TOKEN`: cualquier string que elijas — es el mismo valor
   que después cargás en Meta for Developers al configurar el webhook.
 - `WHATSAPP_ACCESS_TOKEN` / `WHATSAPP_PHONE_NUMBER_ID`: salen de la cuenta
@@ -95,14 +109,15 @@ URL que se carga en Meta como "Callback URL" del webhook.
 
 Después del primer deploy hace falta también publicar el índice compuesto
 de Firestore que usa el webhook (traslados por chofer + estado + fecha, ver
-`firestore.indexes.json` en la raíz del repo):
+`firestore.indexes.json` en la raíz del repo), y las reglas de Firestore
+actualizadas (agregan dos colecciones de uso interno del bot):
 
 ```bash
-firebase deploy --only firestore:indexes
+firebase deploy --only firestore:indexes,firestore:rules
 ```
 
-(esto tampoco exige Blaze — los índices son una configuración de Firestore,
-no de Cloud Functions).
+(esto tampoco exige Blaze — índices y reglas son configuración de
+Firestore, no de Cloud Functions).
 
 ## Ver logs en vivo
 

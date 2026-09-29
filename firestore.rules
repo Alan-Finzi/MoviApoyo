@@ -7,9 +7,9 @@ rules_version = '2';
 // operativos (traslados, choferes, vehículos, pacientes, tutores,
 // incidentes, notificaciones y configuración). Choferes y padres/tutores
 // NUNCA acceden a Firestore directamente desde el navegador: interactúan
-// por WhatsApp, y es la Cloud Function del webhook (con el Admin SDK, que
-// no pasa por estas reglas) la que lee/escribe en su nombre (ver
-// docs/whatsapp-bot.md).
+// por WhatsApp, y es el bot (workers/whatsapp-bot/, con su propio login de
+// Firebase Authentication — SÍ pasa por estas mismas reglas, no las
+// bypasea) el que lee/escribe en su nombre (ver docs/whatsapp-bot.md).
 //
 // /admins/{uid} es la excepción: guarda el rol de cada usuario de staff, y
 // por eso NINGÚN cliente puede escribirlo (ni siquiera el propio usuario),
@@ -61,6 +61,16 @@ service cloud.firestore {
       allow read, write: if isSignedIn();
     }
     match /settings/{settingId} {
+      allow read, write: if isSignedIn();
+    }
+
+    // Uso exclusivo del bot de WhatsApp (workers/whatsapp-bot/), que
+    // inicia sesión como un usuario más de Firebase Authentication (ver su
+    // README.md) — ningún otro cliente los lee ni escribe.
+    match /processedWhatsAppMessages/{messageId} {
+      allow read, write: if isSignedIn();
+    }
+    match /whatsappConversationState/{phone} {
       allow read, write: if isSignedIn();
     }
   }
